@@ -58,7 +58,6 @@
 	TimerLib
 	BootLib
 	StackCanary
-	EfiFileLib
 	FastbootLib
 	UbsanLib
 
