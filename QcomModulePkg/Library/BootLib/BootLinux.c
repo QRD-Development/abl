@@ -140,6 +140,7 @@ UpdateBootParams (BootParamlist *BootParamlistPtr)
 {
   UINT64 KernelSizeReserved;
   UINT64 KernelLoadAddr;
+  Kernel64Hdr *Kptr = NULL;
 
   if (BootParamlistPtr == NULL ) {
     DEBUG ((EFI_D_ERROR, "Invalid input parameters\n"));
@@ -152,11 +153,16 @@ UpdateBootParams (BootParamlist *BootParamlistPtr)
   if (QueryBootParams (&KernelLoadAddr, &KernelSizeReserved)) {
     BootParamlistPtr->KernelLoadAddr = KernelLoadAddr;
     if (BootParamlistPtr->BootingWith32BitKernel) {
-         BootParamlistPtr->KernelLoadAddr += KERNEL_32BIT_LOAD_OFFSET;
+      BootParamlistPtr->KernelLoadAddr += KERNEL_32BIT_LOAD_OFFSET;
     } else {
-         BootParamlistPtr->KernelLoadAddr += KERNEL_64BIT_LOAD_OFFSET;
+      Kptr = (Kernel64Hdr *) (BootParamlistPtr->ImageBuffer +
+                                BootParamlistPtr->PageSize);
+      if (Kptr->ImageSize) {
+          BootParamlistPtr->KernelLoadAddr += Kptr->TextOffset;
+      } else {
+        BootParamlistPtr->KernelLoadAddr += KERNEL_64BIT_LOAD_OFFSET;
+      }
     }
-
     BootParamlistPtr->KernelEndAddr = KernelLoadAddr + KernelSizeReserved;
   } else {
     DEBUG ((EFI_D_VERBOSE, "QueryBootParams Failed: "));
