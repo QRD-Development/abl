@@ -2785,8 +2785,10 @@ CmdGetVar (CONST CHAR8 *Arg, VOID *Data, UINT32 Size)
       if (PartitionHasMultiSlot (PartNameUniStr)) {
         CurrentSlot = GetCurrentSlotSuffix ();
         UnicodeStrToAsciiStr (CurrentSlot.Suffix, CurrentSlotAsc);
-        AsciiStrnCatS ((CHAR8 *)Arg, AsciiStrLen (CurrentSlotAsc),
-                      CurrentSlotAsc, AsciiStrLen (CurrentSlotAsc));
+        AsciiStrnCatS ((CHAR8 *)Arg,
+                        MAX_FASTBOOT_COMMAND_SIZE - AsciiStrLen ("getvar:"),
+                        CurrentSlotAsc,
+                        AsciiStrLen (CurrentSlotAsc));
       }
     }
   }
