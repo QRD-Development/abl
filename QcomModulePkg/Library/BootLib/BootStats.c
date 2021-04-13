@@ -114,8 +114,6 @@ BootStatsSetTimeStamp (BS_ENTRY BootStatId)
       if (BootStatClockCount) {
         WRITEL (BootStatImemAddress, BootStatClockCount);
       }
-      DEBUG ((EFI_D_VERBOSE, "BootStats: ID-%d: BootStatClockCount:%u\n",
-              BootStatId, BootStatClockCount));
     }
   }
 }
