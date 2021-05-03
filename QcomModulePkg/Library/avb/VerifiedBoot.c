@@ -314,10 +314,10 @@ IsRootCmdLineUpdated (BootInfo *Info)
 
 
 /**
-  Load Vendor Boot image if the boot image is v3
+  Load Partition Boot image if the boot image is v3
 **/
 STATIC EFI_STATUS
-NoAVBLoadVendorBootImage (BootInfo *Info)
+NoAVBLoadPartitionImage (BootInfo *Info, CHAR16 *PartName)
 {
   EFI_STATUS Status;
   CHAR16 Pname[MAX_GPT_NAME_SIZE];
@@ -326,9 +326,9 @@ NoAVBLoadVendorBootImage (BootInfo *Info)
   Status = NoAVBLoadReqImage (Info,
            (VOID **)&(Info->Images[ImgIdx].ImageBuffer),
            (UINT32 *)&(Info->Images[ImgIdx].ImageSize),
-           Pname, (CHAR16 *)L"vendor_boot");
+           Pname, PartName);
   if (Status == EFI_NO_MEDIA) {
-      DEBUG ((EFI_D_INFO, "No vendor_boot partition is found, Skipping\n"));
+      DEBUG ((EFI_D_INFO, "No %s partition is found, Skipping\n", PartName));
       if (Info->Images[ImgIdx].ImageBuffer != NULL) {
         FreePool (Info->Images[ImgIdx].ImageBuffer);
       }
@@ -336,7 +336,8 @@ NoAVBLoadVendorBootImage (BootInfo *Info)
   }
   else if (Status != EFI_SUCCESS) {
       DEBUG ((EFI_D_ERROR,
-             "ERROR: Failed to load vendor_boot from partition: %r\n", Status));
+             "ERROR: Failed to load %s from partition: %r\n", PartName,
+             Status));
       if (Info->Images[ImgIdx].ImageBuffer != NULL) {
         goto Err;
       }
@@ -359,15 +360,14 @@ Err:
 }
 
 STATIC EFI_STATUS
-LoadVendorBootImageHeader (BootInfo *Info,
-                          VOID **VendorImageHdrBuffer,
-                          UINT32 *VendorImageHdrSize)
+LoadPartitionImageHeader (BootInfo *Info, CHAR16 *PartName,
+                          VOID **ImageHdrBuffer, UINT32 *ImageHdrSize)
 {
   EFI_STATUS Status = EFI_SUCCESS;
   CHAR16 Pname[MAX_GPT_NAME_SIZE] = {0};
 
   StrnCpyS (Pname, ARRAY_SIZE (Pname),
-            (CHAR16 *)L"vendor_boot", StrLen ((CHAR16 *)L"vendor_boot"));
+            PartName, StrLen (PartName));
 
   if (Info->MultiSlotBoot) {
     GUARD (StrnCatS (Pname, ARRAY_SIZE (Pname),
@@ -375,7 +375,7 @@ LoadVendorBootImageHeader (BootInfo *Info,
                      StrLen (GetCurrentSlotSuffix ().Suffix)));
   }
 
-  return LoadImageHeader (Pname, VendorImageHdrBuffer, VendorImageHdrSize);
+  return LoadImageHeader (Pname, ImageHdrBuffer, ImageHdrSize);
 }
 
 STATIC EFI_STATUS
@@ -409,6 +409,8 @@ LoadBootImageNoAuth (BootInfo *Info, UINT32 *PageSize, BOOLEAN *FastbootPath)
   VOID *VendorImageHdrBuffer = NULL;
   UINT32 VendorImageHdrSize = 0;
   BOOLEAN BootIntoRecovery = FALSE;
+  VOID *RecoveryImageHdrBuffer = NULL;
+  UINT32 RecoveryImageHdrSize = 0;
   BOOLEAN BootImageLoaded;
 
   /** The Images[0].ImageBuffer would have been loaded with the boot image
@@ -443,8 +445,8 @@ LoadBootImageNoAuth (BootInfo *Info, UINT32 *PageSize, BOOLEAN *FastbootPath)
    * versions than 3. Consider both the headers for validation.
    */
   if (Info->HeaderVersion >= BOOT_HEADER_VERSION_THREE) {
-    Status = LoadVendorBootImageHeader (Info, &VendorImageHdrBuffer,
-                                        &VendorImageHdrSize);
+    Status = LoadPartitionImageHeader (Info, (CHAR16 *)L"vendor_boot",
+                                &VendorImageHdrBuffer, &VendorImageHdrSize);
     if (Status != EFI_SUCCESS) {
         DEBUG ((EFI_D_ERROR,
                "ERROR: Failed to load vendor_boot Image header: %r\n", Status));
@@ -452,12 +454,24 @@ LoadBootImageNoAuth (BootInfo *Info, UINT32 *PageSize, BOOLEAN *FastbootPath)
     }
   }
 
+  if (BootIntoRecovery &&
+      IsRecoveryHasNoKernel ()) {
+    Status = LoadPartitionImageHeader (Info, (CHAR16 *)L"recovery",
+                      &RecoveryImageHdrBuffer, &RecoveryImageHdrSize);
+    if (Status != EFI_SUCCESS) {
+      DEBUG ((EFI_D_ERROR,
+              "ERROR: Failed to load recovery image header: %r\n", Status));
+      goto ErrRecV3;
+    }
+}
+
   /* Add check for boot image header, kernel page size,
    * and ensure kernel command line is terminate.
    */
   Status = CheckImageHeader (ImageHdrBuffer, ImageHdrSize,
                              VendorImageHdrBuffer, VendorImageHdrSize,
-                             &ImageSizeActual, PageSize, BootIntoRecovery);
+                             &ImageSizeActual, PageSize, BootIntoRecovery,
+                             RecoveryImageHdrBuffer);
   if (Status != EFI_SUCCESS) {
     DEBUG ((EFI_D_ERROR, "Invalid boot image header:%r\n", Status));
     goto Err;
@@ -484,16 +498,35 @@ LoadBootImageNoAuth (BootInfo *Info, UINT32 *PageSize, BOOLEAN *FastbootPath)
   Info->Images[0].ImageSize = ImageSizeActual;
 
   if (Info->HeaderVersion >= BOOT_HEADER_VERSION_THREE) {
-    Status = NoAVBLoadVendorBootImage (Info);
+    Status = NoAVBLoadPartitionImage (Info, (CHAR16 *)L"vendor_boot");
     if (Status != EFI_SUCCESS) {
         DEBUG ((EFI_D_ERROR,
                "ERROR: Failed to load vendor_boot Image : %r\n", Status));
       goto ErrImgName;
     }
+
+    if (BootIntoRecovery &&
+        IsRecoveryHasNoKernel ()) {
+      Status = NoAVBLoadPartitionImage (Info, (CHAR16 *)L"recovery");
+
+      if (Status != EFI_SUCCESS) {
+        DEBUG ((EFI_D_ERROR,
+                "ERROR: Failed to load recovery Image: %r\n", Status));
+        goto ErrRecImgName;
+      }
+    }
   }
 
   return EFI_SUCCESS;
 
+ErrRecImgName:
+  if (Info->Images[1].Name) {
+    FreePool (Info->Images[1].Name);
+  }
+
+  if (Info->Images[1].ImageBuffer) {
+    FreePool (Info->Images[1].ImageBuffer);
+  }
 ErrImgName:
   if (!BootImageLoaded &&
       Info->Images[0].Name) {
@@ -508,6 +541,11 @@ ErrImg:
                ALIGN_PAGES (ImageSize, ALIGNMENT_MASK_4KB));
   }
 Err:
+  if (RecoveryImageHdrBuffer) {
+    FreePages (RecoveryImageHdrBuffer,
+               ALIGN_PAGES (BOOT_IMG_MAX_PAGE_SIZE, ALIGNMENT_MASK_4KB));
+  }
+ErrRecV3:
   if (VendorImageHdrBuffer) {
     FreePages (VendorImageHdrBuffer,
                ALIGN_PAGES (BOOT_IMG_MAX_PAGE_SIZE, ALIGNMENT_MASK_4KB));
@@ -1111,6 +1149,8 @@ LoadImageAndAuthVB2 (BootInfo *Info)
   UINTN ImageSize = 0;
   VOID *VendorBootImageBuffer = NULL;
   UINTN VendorBootImageSize = 0;
+  VOID *RecoveryImageBuffer = NULL;
+  UINTN RecoveryImageSize = 0;
   KMRotAndBootState Data = {0};
   CONST CHAR8 *BootSecurityLevel = NULL;
   size_t BootSecurityLevelSize = 0;
@@ -1186,7 +1226,8 @@ LoadImageAndAuthVB2 (BootInfo *Info)
   if ( ( (!Info->MultiSlotBoot) ||
            IsDynamicPartitionSupport ()) &&
            (Info->BootIntoRecovery &&
-           !IsBuildUseRecoveryAsBoot ())) {
+           !IsBuildUseRecoveryAsBoot () &&
+           !IsRecoveryHasNoKernel ())) {
     if (!Info->MultiSlotBoot)
               VerifyFlags = VerifyFlags | AVB_SLOT_VERIFY_FLAGS_NO_VBMETA_PARTITION;
     AddRequestedPartition (RequestedPartitionAll, IMG_RECOVERY);
@@ -1270,6 +1311,13 @@ LoadImageAndAuthVB2 (BootInfo *Info)
     } else {
       DEBUG ((EFI_D_ERROR, "Invalid vendor_boot partition. Skipping\n"));
     }
+
+    if (Info->BootIntoRecovery &&
+        IsValidPartition (&CurrentSlot, L"recovery")) {
+      AddRequestedPartition (RequestedPartitionAll, IMG_RECOVERY);
+      NumRequestedPartition += 1;
+    }
+
     Result = avb_slot_verify (Ops, (CONST CHAR8 *CONST *)RequestedPartition,
                   SlotSuffix, VerifyFlags, VerityFlags, &SlotData);
   }
@@ -1350,7 +1398,8 @@ LoadImageAndAuthVB2 (BootInfo *Info)
                     ( (!Info->MultiSlotBoot ||
                      IsDynamicPartitionSupport ()) &&
                      (Info->BootIntoRecovery &&
-                     !IsBuildUseRecoveryAsBoot ())) ?
+                     !IsBuildUseRecoveryAsBoot () &&
+                     !IsRecoveryHasNoKernel ())) ?
                      "recovery" : "boot"));
 
   if (ImageSize < sizeof (boot_img_hdr)) {
@@ -1364,12 +1413,18 @@ LoadImageAndAuthVB2 (BootInfo *Info)
   if (BootImgHdr->header_version >= BOOT_HEADER_VERSION_THREE) {
     GUARD_OUT (GetImage (Info, &VendorBootImageBuffer,
                          &VendorBootImageSize, "vendor_boot"));
+
+  if (Info->BootIntoRecovery &&
+      IsRecoveryHasNoKernel ()) {
+      GUARD_OUT (GetImage (Info, &RecoveryImageBuffer, &RecoveryImageSize,
+                           "recovery"));
+    }
   }
 
   Status = CheckImageHeader (ImageBuffer, ImageHdrSize,
                              VendorBootImageBuffer, VendorBootImageSize,
                              &ImageSizeActual, &PageSize,
-                             Info->BootIntoRecovery);
+                             Info->BootIntoRecovery, RecoveryImageBuffer);
   if (Status != EFI_SUCCESS) {
     DEBUG ((EFI_D_ERROR, "Invalid boot image header:%r\n", Status));
     goto out;
@@ -1658,6 +1713,8 @@ LoadImageAndAuth (BootInfo *Info)
   BOOLEAN MdtpActive = FALSE;
   QCOM_MDTP_PROTOCOL *MdtpProtocol;
   UINT32 AVBVersion = NO_AVB;
+  VOID *RecoveryHdr = NULL;
+  UINT32 RecoveryHdrSz = 0;
 
   WaitForFlashFinished ();
 
@@ -1666,14 +1723,38 @@ LoadImageAndAuth (BootInfo *Info)
     return EFI_INVALID_PARAMETER;
   }
 
+  /* check early if recovery exists and has a kernel size */
+  Status = LoadPartitionImageHeader (Info, (CHAR16 *)L"recovery", &RecoveryHdr,
+                                     &RecoveryHdrSz);
+  if (Status != EFI_SUCCESS) {
+    DEBUG ((EFI_D_VERBOSE,
+            "Recovery partition doesn't exist; continue normal boot\n"));
+  } else if (((boot_img_hdr *)(RecoveryHdr))->header_version >=
+             BOOT_HEADER_VERSION_THREE &&
+               !((boot_img_hdr *)(RecoveryHdr))->kernel_size) {
+    DEBUG ((EFI_D_VERBOSE, "Recovery partition has no kernel\n"));
+    SetRecoveryHasNoKernel ();
+  }
+
+  if (RecoveryHdr) {
+    FreePages (RecoveryHdr,
+               ALIGN_PAGES (BOOT_IMG_MAX_PAGE_SIZE, ALIGNMENT_MASK_4KB));
+  }
+
   /* Get Partition Name*/
   if (!Info->MultiSlotBoot) {
-    if (Info->BootIntoRecovery) {
+    if (Info->BootIntoRecovery &&
+        !IsRecoveryHasNoKernel ()) {
       DEBUG ((EFI_D_INFO, "Booting Into Recovery Mode\n"));
       StrnCpyS (Info->Pname, ARRAY_SIZE (Info->Pname), L"recovery",
                 StrLen (L"recovery"));
     } else {
-      DEBUG ((EFI_D_INFO, "Booting Into Mission Mode\n"));
+      if (Info->BootIntoRecovery &&
+          IsRecoveryHasNoKernel ()) {
+        DEBUG ((EFI_D_INFO, "Booting into Recovery Mode via Boot\n"));
+      } else {
+        DEBUG ((EFI_D_INFO, "Booting Into Mission Mode\n"));
+      }
       StrnCpyS (Info->Pname, ARRAY_SIZE (Info->Pname), L"boot",
                 StrLen (L"boot"));
     }
@@ -1687,12 +1768,18 @@ LoadImageAndAuth (BootInfo *Info)
     }
 
     if (IsDynamicPartitionSupport () &&
-          Info->BootIntoRecovery) {
+          Info->BootIntoRecovery &&
+          !IsRecoveryHasNoKernel ()) {
       DEBUG ((EFI_D_INFO, "Booting Into Recovery Mode\n"));
       StrnCpyS (Info->Pname, ARRAY_SIZE (Info->Pname), L"recovery",
                      StrLen (L"recovery"));
     } else {
-      DEBUG ((EFI_D_INFO, "Booting Into Mission Mode\n"));
+      if (Info->BootIntoRecovery &&
+          IsRecoveryHasNoKernel ()) {
+        DEBUG ((EFI_D_INFO, "Booting into Recovery Mode via Boot\n"));
+      } else {
+        DEBUG ((EFI_D_INFO, "Booting Into Mission Mode\n"));
+      }
       GUARD (StrnCpyS (Info->Pname, ARRAY_SIZE (Info->Pname), L"boot",
                      StrLen (L"boot")));
     }

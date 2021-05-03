@@ -534,7 +534,8 @@ UpdateCmdLineParams (UpdateCmdLineParamList *Param,
     AsciiStrCatS (Dst, MaxCmdLineLen, Src);
   }
 
-  if ((IsBuildUseRecoveryAsBoot () &&
+  if (((IsBuildUseRecoveryAsBoot () ||
+      IsRecoveryHasNoKernel ()) &&
       IsDynamicPartitionSupport () &&
       !Param->Recovery) ||
       (!Param->MultiSlotBoot &&
@@ -727,7 +728,8 @@ UpdateCmdLine (CONST CHAR8 *CmdLine,
     }
   }
 
-  if ((IsBuildUseRecoveryAsBoot () &&
+  if (((IsBuildUseRecoveryAsBoot () ||
+      IsRecoveryHasNoKernel ()) &&
       IsDynamicPartitionSupport () &&
       !Recovery) ||
       (!MultiSlotBoot &&
