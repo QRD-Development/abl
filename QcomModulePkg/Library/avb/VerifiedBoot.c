@@ -1313,7 +1313,8 @@ LoadImageAndAuthVB2 (BootInfo *Info)
     }
 
     if (Info->BootIntoRecovery &&
-        IsValidPartition (&CurrentSlot, L"recovery")) {
+        !IsBuildUseRecoveryAsBoot () &&
+        IsRecoveryHasNoKernel ()) {
       AddRequestedPartition (RequestedPartitionAll, IMG_RECOVERY);
       NumRequestedPartition += 1;
     }
