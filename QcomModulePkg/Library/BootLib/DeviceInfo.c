@@ -360,7 +360,7 @@ EFI_STATUS DeviceInfoInit (VOID)
       DevInfo.is_unlocked = TRUE;
       DevInfo.is_unlock_critical = TRUE;
     }
-    DevInfo.is_charger_screen_enabled = FALSE;
+    DevInfo.is_charger_screen_enabled = TRUE;
     DevInfo.verity_mode = TRUE;
     DevInfo.is_developer_mode_enabled = FALSE;
     DevInfo.is_mainline_optimization_enabled = FALSE;
