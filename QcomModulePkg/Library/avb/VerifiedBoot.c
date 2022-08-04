@@ -1621,49 +1621,56 @@ STATIC EFI_STATUS LoadImageAndAuthForLE (BootInfo *Info)
         return Status;
     }
 
-    if (SecureDevice) {
-      /* Initialize Verified Boot*/
-      device_info_vb_t DevInfo_vb;
-      DevInfo_vb.is_unlocked = IsUnlocked ();
-      DevInfo_vb.is_unlock_critical = IsUnlockCritical ();
-      Status = Info->VbIntf->VBDeviceInit (Info->VbIntf,
-                                          (device_info_vb_t *)&DevInfo_vb);
-      if (Status != EFI_SUCCESS) {
-          DEBUG ((EFI_D_ERROR, "VB: Error during VBDeviceInit: %r\n", Status));
-          return Status;
+    if (!SecureDevice) {
+      if (!TargetBuildVariantUser () ) {
+          DEBUG ((EFI_D_INFO, "VB: verification skipped for debug builds\n"));
+          goto skip_verification;
       }
-
-      /*Calculate kernel image hash, SHA256 is used by default*/
-      HashAlgorithm = VB_SHA256;
-      HashSize = VB_SHA256_SIZE;
-      ImgSize = Info->Images[0].ImageSize;
-      ImgHash = AllocateZeroPool (HashSize);
-      if (ImgHash == NULL) {
-          DEBUG ((EFI_D_ERROR, "kernel image hashbuffer allocation failed!\n"));
-          Status = EFI_OUT_OF_RESOURCES;
-          return Status;
-      }
-      Status = LEGetImageHash (QcomAsn1X509Protocal, HashAlgorithm,
-                  (UINT8 *)Info->Images[0].ImageBuffer,
-                  ImgSize, ImgHash, HashSize);
-      if (Status != EFI_SUCCESS) {
-          DEBUG ((EFI_D_ERROR, "VB: Error during VBGetImageHash:%r\n", Status));
-          return Status;
-      }
-
-      SigAddr = (UINT8 *)Info->Images[0].ImageBuffer + ImgSize;
-      SigSize = LE_BOOTIMG_SIG_SIZE;
-      Status = LEVerifyHashWithSignature (QcomAsn1X509Protocal, ImgHash,
-      HashAlgorithm, &OemCert, SigAddr, SigSize);
-
-      if (Status != EFI_SUCCESS) {
-          DEBUG ((EFI_D_ERROR, "VB: Error during "
-                        "LEVBVerifyHashWithSignature: %r\n", Status));
-          return Status;
-      }
-      DEBUG ((EFI_D_INFO, "VB: LoadImageAndAuthForLE complete!\n"));
     }
 
+    /* Initialize Verified Boot*/
+    device_info_vb_t DevInfo_vb;
+    DevInfo_vb.is_unlocked = IsUnlocked ();
+    DevInfo_vb.is_unlock_critical = IsUnlockCritical ();
+    Status = Info->VbIntf->VBDeviceInit (Info->VbIntf,
+                                        (device_info_vb_t *)&DevInfo_vb);
+    if (Status != EFI_SUCCESS) {
+        DEBUG ((EFI_D_ERROR, "VB: Error during VBDeviceInit: %r\n", Status));
+        return Status;
+    }
+
+    /*Calculate kernel image hash, SHA256 is used by default*/
+    HashAlgorithm = VB_SHA256;
+    HashSize = VB_SHA256_SIZE;
+    ImgSize = Info->Images[0].ImageSize;
+    ImgHash = AllocateZeroPool (HashSize);
+    if (ImgHash == NULL) {
+        DEBUG ((EFI_D_ERROR, "kernel image hashbuffer allocation failed!\n"));
+        Status = EFI_OUT_OF_RESOURCES;
+        return Status;
+    }
+    Status = LEGetImageHash (QcomAsn1X509Protocal, HashAlgorithm,
+                (UINT8 *)Info->Images[0].ImageBuffer,
+                ImgSize, ImgHash, HashSize);
+    if (Status != EFI_SUCCESS) {
+        DEBUG ((EFI_D_ERROR, "VB: Error during VBGetImageHash:%r\n", Status));
+        return Status;
+    }
+
+    SigAddr = (UINT8 *)Info->Images[0].ImageBuffer + ImgSize;
+    SigSize = LE_BOOTIMG_SIG_SIZE;
+    Status = LEVerifyHashWithSignature (QcomAsn1X509Protocal, ImgHash,
+    HashAlgorithm, &OemCert, SigAddr, SigSize);
+
+    if (Status != EFI_SUCCESS) {
+        DEBUG ((EFI_D_ERROR, "VB: Error during "
+                      "LEVBVerifyHashWithSignature: %r\n", Status));
+        return Status;
+    }
+    DEBUG ((EFI_D_INFO, "VB: LoadImageAndAuthForLE complete!\n"));
+
+
+skip_verification:
     Status = Info->VbIntf->VBIsKeymasterEnabled (Info->VbIntf,
                                                   &KeymasterEnabled);
     if (Status != EFI_SUCCESS) {
@@ -1694,18 +1701,13 @@ STATIC EFI_STATUS LoadImageAndAuthForLE (BootInfo *Info)
       }
     }
 
-    if (!SecureDevice) {
-      if (!TargetBuildVariantUser () ) {
-        DEBUG ((EFI_D_INFO, "VB: verification skipped for debug builds\n"));
-        if (!IsRootCmdLineUpdated (Info)) {
-          SystemPathLen = GetSystemPath (&SystemPath, Info);
-          if (SystemPathLen == 0 ||
-              SystemPath == NULL) {
-                return EFI_LOAD_ERROR;
-          }
-          GUARD (AppendVBCmdLine (Info, SystemPath));
-        }
+    if (!IsRootCmdLineUpdated (Info)) {
+      SystemPathLen = GetSystemPath (&SystemPath, Info);
+      if (SystemPathLen == 0 ||
+          SystemPath == NULL) {
+            return EFI_LOAD_ERROR;
       }
+      GUARD (AppendVBCmdLine (Info, SystemPath));
     }
     return Status;
 }
