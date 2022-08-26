@@ -80,8 +80,8 @@
 #define SERIAL_NUM_SIZE 64
 
 #define MEM_OFF_SIZE 16
-/* set minimum size to 6 GB */
-#define MEM_OFF_MIN 0x180000000
+/* set minimum size to 5.5 GB */
+#define MEM_OFF_MIN 0x160000000
 #define MB_SIZE 0x100000
 
 typedef struct BootInfo BootInfo;
