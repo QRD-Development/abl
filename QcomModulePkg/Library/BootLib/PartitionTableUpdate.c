@@ -1373,8 +1373,9 @@ GetActiveSlot (Slot *ActiveSlot)
 
     BootPriority = (SlotA->PartEntry.Attributes & PART_ATT_PRIORITY_VAL) >>
                    PART_ATT_PRIORITY_BIT;
-    RetryCount = (SlotA->PartEntry.Attributes & PART_ATT_MAX_RETRY_COUNT_VAL) >>
-                 PART_ATT_MAX_RETRY_CNT_BIT;
+    RetryCount = (SlotA->PartEntry.Attributes & (IsMultiSlot_ABC ?
+               PART_ATT_MAX_RETRY_COUNT_VAL_ABC : PART_ATT_MAX_RETRY_COUNT_VAL))
+                 >> PART_ATT_MAX_RETRY_CNT_BIT;
 
     if ((SlotA->PartEntry.Attributes & PART_ATT_ACTIVE_VAL) == 0 &&
         (SlotA->PartEntry.Attributes & PART_ATT_SUCCESSFUL_VAL) == 0 &&
@@ -1387,7 +1388,8 @@ GetActiveSlot (Slot *ActiveSlot)
           (~PART_ATT_SUCCESSFUL_VAL & ~PART_ATT_UNBOOTABLE_VAL);
       SlotA->PartEntry.Attributes |=
           (PART_ATT_PRIORITY_VAL | PART_ATT_ACTIVE_VAL |
-           PART_ATT_MAX_RETRY_COUNT_VAL);
+           (IsMultiSlot_ABC ? PART_ATT_MAX_RETRY_COUNT_VAL_ABC
+            : PART_ATT_MAX_RETRY_COUNT_VAL));
 
       GUARD (StrnCpyS (ActiveSlot->Suffix, ARRAY_SIZE (ActiveSlot->Suffix),
                        Slots[0].Suffix, StrLen (Slots[0].Suffix)));
@@ -1703,8 +1705,9 @@ FindBootableSlot (Slot *BootableSlot)
   BootSuccess = (BootEntry->PartEntry.Attributes & PART_ATT_SUCCESSFUL_VAL) >>
                 PART_ATT_SUCCESS_BIT;
   RetryCount =
-      (BootEntry->PartEntry.Attributes & PART_ATT_MAX_RETRY_COUNT_VAL) >>
-      PART_ATT_MAX_RETRY_CNT_BIT;
+      (BootEntry->PartEntry.Attributes &
+       (IsMultiSlot_ABC ? PART_ATT_MAX_RETRY_COUNT_VAL_ABC :
+        PART_ATT_MAX_RETRY_COUNT_VAL)) >> PART_ATT_MAX_RETRY_CNT_BIT;
 
   if (Unbootable == 0 && BootSuccess == 1) {
     DEBUG (

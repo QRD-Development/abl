@@ -460,6 +460,8 @@ STATIC VOID FastbootPublishSlotVars (VOID)
   CHAR8 PartitionNameAscii[MAX_GPT_NAME_SIZE];
   UINT32 RetryCount = 0;
   BOOLEAN Set = FALSE;
+  STATIC BOOLEAN IsMultiSlot_ABC;
+  IsMultiSlot_ABC = (SlotCount == MAX_SLOTS);
 
   GetPartitionCount (&PartitionCount);
   /*Scan through partition entries, populate the attributes*/
@@ -501,8 +503,9 @@ STATIC VOID FastbootPublishSlotVars (VOID)
       AsciiStrnCpyS (BootSlotInfo[j].SlotRetryCountVar, SLOT_ATTR_SIZE,
                      "slot-retry-count:", AsciiStrLen ("slot-retry-count:"));
       RetryCount =
-          (PtnEntries[i].PartEntry.Attributes & PART_ATT_MAX_RETRY_COUNT_VAL) >>
-          PART_ATT_MAX_RETRY_CNT_BIT;
+          (PtnEntries[i].PartEntry.Attributes & (IsMultiSlot_ABC ?
+            PART_ATT_MAX_RETRY_COUNT_VAL_ABC : PART_ATT_MAX_RETRY_COUNT_VAL))
+            >> PART_ATT_MAX_RETRY_CNT_BIT;
       AsciiSPrint (BootSlotInfo[j].SlotRetryCountVal, ATTR_RESP_SIZE, "%llu",
                    RetryCount);
       AsciiStrnCatS (BootSlotInfo[j].SlotRetryCountVar, SLOT_ATTR_SIZE, Suffix,
