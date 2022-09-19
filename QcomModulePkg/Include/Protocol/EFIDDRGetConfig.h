@@ -40,7 +40,7 @@ typedef struct _EFI_DDRGETINFO_PROTOCOL EFI_DDRGETINFO_PROTOCOL;
 /**
   Protocol version.
 */
-#define EFI_DDRGETINFO_PROTOCOL_REVISION 0x0000000000050000
+#define EFI_DDRGETINFO_PROTOCOL_REVISION 0x0000000000060000
 
 /*Both the protocl version and the structure version should be same */
 #if (EFI_DDRGETINFO_PROTOCOL_REVISION != DDR_DETAILS_STRUCT_VERSION)
@@ -306,21 +306,21 @@ EFI_STATUS
 */
 typedef
 EFI_STATUS
-(EFIAPI *EFI_DDRGETINFO_MEASURESHUBFREQ)(
+(EFIAPI *EFI_DDRGETINFO_GETSHUBFREQ)(
    IN EFI_DDRGETINFO_PROTOCOL   *This,
    OUT UINT32                   *shub_freq
    );
 
 /* ============================================================================
-**  Function : EFI_DDRGETINFO_GETXBL2QUANTUM_SMEM_DATA
+**  Function : EFI_DDRGETINFO_GETDDRMISCINFO_SMEM_DATA
 ** ============================================================================
 */
-/** @ingroup EFI_DDRGETINFO_GETXBL2QUANTUM_SMEM_DATA
+/** @ingroup EFI_DDRGETINFO_GETDDRMISCINFO_SMEM_DATA
   @par Summary
   Gets the loader to uefi smem data
 
   @param[in]   This             Pointer to the EFI_DDRGETINFO_PROTOCOL instance.
-  @param[out]  xbl2quantum_smemdata     Pointer to loader to uefi smem data
+  @param[out]  ddr_misc_data    Pointer to loader to uefi smem data
 
   @return
   EFI_SUCCESS        -- Function completed successfully. \n
@@ -328,9 +328,9 @@ EFI_STATUS
 */
 typedef
 EFI_STATUS
-(EFIAPI *EFI_DDRGETINFO_GETXBL2QUANTUM_SMEM_DATA)(
+(EFIAPI *EFI_DDRGETINFO_GETDDRMISCINFO_SMEM_DATA)(
    IN EFI_DDRGETINFO_PROTOCOL   *This,
-   OUT XBL2QUANTUM_SMEM_STRUCT  *xbl2quantum_smemdata
+   OUT ddr_misc_info  *ddr_misc_data
    );
 
 /*===========================================================================
@@ -354,8 +354,8 @@ struct _EFI_DDRGETINFO_PROTOCOL {
    EFI_DDRGETINFO_GETDDRMAPPEDREGIONS    GetDDRMappedRegions;
    EFI_DDRGETINFO_GETSHUBFREQTABLE       GetSHUBFreqTable;
    EFI_DDRGETINFO_SETSHUBFREQ            SetSHUBFreq;
-   EFI_DDRGETINFO_MEASURESHUBFREQ        MeasureSHUBFreq;
-   EFI_DDRGETINFO_GETXBL2QUANTUM_SMEM_DATA  GetXbl2QuantumSmemData;
+   EFI_DDRGETINFO_GETSHUBFREQ            GetSHUBFreq;
+   EFI_DDRGETINFO_GETDDRMISCINFO_SMEM_DATA  GetDDRmiscinfoSmemData;
 };
 
 #endif /* __EFIDDRGETINFO_H__ */
