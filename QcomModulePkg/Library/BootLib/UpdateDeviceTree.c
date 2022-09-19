@@ -95,13 +95,46 @@ GetDDRInfo (struct ddr_details_entry_info *DdrInfo)
   }
 
   Revision = DdrInfoIf->Revision;
-  DEBUG ((EFI_D_VERBOSE, "DDR Header Revision =0x%x\n", Revision));
+  DEBUG ((EFI_D_VERBOSE, "GetDDRInfo: DDR Header Revision =0x%x\n", Revision));
 
   if (Revision < EFI_DDRGETINFO_PROTOCOL_REVISION) {
     DEBUG ((EFI_D_VERBOSE,
             "ddr_device_rank, HBB not supported in Revision=0x%x\n", Revision));
     return EFI_UNSUPPORTED;
   }
+
+  return Status;
+}
+
+STATIC EFI_STATUS
+GetSCTConfig (UINT8 *SCTConfig)
+{
+  EFI_DDRGETINFO_PROTOCOL *DdrInfoIf;
+  EFI_STATUS Status;
+  UINT64 Revision;
+
+  Status = gBS->LocateProtocol (&gEfiDDRGetInfoProtocolGuid, NULL,
+                                (VOID **)&DdrInfoIf);
+  if (Status != EFI_SUCCESS) {
+    DEBUG ((EFI_D_VERBOSE,
+            "INFO: Unable to get DDR Info protocol:%r\n",
+            Status));
+    return Status;
+  }
+
+  Revision = DdrInfoIf->Revision;
+  if (Revision < EFI_DDRGETINFO_PROTOCOL_REVISION) {
+    DEBUG ((EFI_D_VERBOSE,
+            "SCTConfig not supported in Revision=0x%x\n", Revision));
+    return EFI_UNSUPPORTED;
+  }
+
+  Status = DdrInfoIf->GetDDRSCTConfig (DdrInfoIf, SCTConfig);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "INFO: GetSCTConfig failed\n"));
+    return Status;
+  }
+
   return Status;
 }
 
@@ -907,6 +940,7 @@ UpdateDeviceTree (VOID *fdt,
 {
   INT32 ret = 0;
   UINT32 offset;
+  UINT32 LlccOffset;
   UINT32 PaddSize = 0;
   UINT64 RandomSeed = 0;
   UINT8 DdrDeviceType;
@@ -921,6 +955,7 @@ UpdateDeviceTree (VOID *fdt,
   UINT32 Hbb;
   UINT64 UpdateDTStartTime = GetTimerCountms ();
   UINT32 Index;
+  UINT8 SCTConfig;
 
 
   /* Check the device tree header */
@@ -976,6 +1011,34 @@ UpdateDeviceTree (VOID *fdt,
               ret));
     } else {
       DEBUG ((EFI_D_VERBOSE, "ddr_device_type is added to memory node\n"));
+    }
+
+    if (!IsDDRSupportsSCTConfig ()) {
+      DEBUG ((EFI_D_VERBOSE, "DDR doesn't support SCT Config\n"));
+    } else {
+      Status = GetSCTConfig (&SCTConfig);
+      if (Status != EFI_SUCCESS) {
+        DEBUG ((EFI_D_ERROR, "INFO: Unable to get SCT Config:%r\n", Status));
+        return EFI_UNSUPPORTED;
+      } else {
+        DEBUG ((EFI_D_VERBOSE, "SCT Config: %d\n", SCTConfig));
+        ret = FdtPathOffset (fdt, "/soc/cache-controller");
+        if (ret < 0) {
+          DEBUG ((EFI_D_ERROR, "ERROR: Could not find LLCC node ...\n"));
+          return EFI_NOT_FOUND;
+        }
+
+        LlccOffset = ret;
+        FdtPropUpdateFunc (fdt, LlccOffset, (CONST char *)"qcom,sct-config",
+                         (UINT32)SCTConfig, fdt_appendprop_u32, ret);
+        if (ret) {
+          DEBUG ((EFI_D_ERROR,
+                "ERROR: Cannot update SCT Config [qcom,sct-config]:0x%x\n",
+                 ret));
+        } else {
+          DEBUG ((EFI_D_VERBOSE, "qcom,sct-config is added to LLCC node\n"));
+        }
+      }
     }
 
     if (!FixedPcdGetBool (EnableUpdateRankChannel)) {

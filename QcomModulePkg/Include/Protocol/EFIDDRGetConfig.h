@@ -40,7 +40,7 @@ typedef struct _EFI_DDRGETINFO_PROTOCOL EFI_DDRGETINFO_PROTOCOL;
 /**
   Protocol version.
 */
-#define EFI_DDRGETINFO_PROTOCOL_REVISION 0x0000000000060000
+#define EFI_DDRGETINFO_PROTOCOL_REVISION 0x0000000000070000
 
 /*Both the protocl version and the structure version should be same */
 #if (EFI_DDRGETINFO_PROTOCOL_REVISION != DDR_DETAILS_STRUCT_VERSION)
@@ -333,6 +333,28 @@ EFI_STATUS
    OUT ddr_misc_info  *ddr_misc_data
    );
 
+/* ============================================================================
+**  Function : EFI_DDRGetInfo_GetDDRSCTConfig
+** ============================================================================
+*/
+/** @ingroup EFI_DDRGetInfo_GetDDRSCTConfig
+  @par Summary
+  Gets the DDR SCT Config Information
+
+  @param[in]   This            Pointer to the EFI_DDRGETINFO_PROTOCOL instance.
+  @param[out]  sct_config      Pointer to the SCT Configuration Information.
+
+  @return
+  EFI_SUCCESS        -- Function completed successfully. \n
+  EFI_PROTOCOL_ERROR -- Error occurred during the operation.
+*/
+typedef
+EFI_STATUS
+(EFIAPI *EFI_DDRGETINFO_GETDDRSCTCONFIG)(
+   IN EFI_DDRGETINFO_PROTOCOL *This,
+   OUT UINT8                  *sct_config
+   );
+
 /*===========================================================================
   PROTOCOL INTERFACE
 ===========================================================================*/
@@ -356,6 +378,7 @@ struct _EFI_DDRGETINFO_PROTOCOL {
    EFI_DDRGETINFO_SETSHUBFREQ            SetSHUBFreq;
    EFI_DDRGETINFO_GETSHUBFREQ            GetSHUBFreq;
    EFI_DDRGETINFO_GETDDRMISCINFO_SMEM_DATA  GetDDRmiscinfoSmemData;
+   EFI_DDRGETINFO_GETDDRSCTCONFIG        GetDDRSCTConfig;
 };
 
 #endif /* __EFIDDRGETINFO_H__ */

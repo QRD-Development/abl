@@ -240,4 +240,5 @@ BOOLEAN IsVirtualAbOtaSupported (VOID);
 UINT64 SetandGetLoadAddr (BootParamlist *BootParamlistPtr, AddrType Type);
 BOOLEAN IsNANDSquashFsSupport (VOID);
 BOOLEAN IsEnableDisplayMenuFlagSupported (VOID);
+BOOLEAN IsDDRSupportsSCTConfig (VOID);
 #endif

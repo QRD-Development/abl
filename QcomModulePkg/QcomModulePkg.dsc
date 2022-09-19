@@ -105,6 +105,9 @@
   !if $(DISPLAY_DISABLE)
       GCC:*_*_*_CC_FLAGS = -DDISPLAY_DISABLE
   !endif
+  !if $(DDR_SUPPORTS_SCT_CONFIG) == 1
+      GCC:*_*_*_CC_FLAGS = -DDDR_SUPPORTS_SCT_CONFIG
+  !endif
   !if $(AB_RETRYCOUNT_DISABLE)
       GCC:*_*_*_CC_FLAGS = -DAB_RETRYCOUNT_DISABLE
   !endif

@@ -35,7 +35,7 @@
 #endif
 #define MAX_SHUB_ENTRIES   8
 
-#define DDR_DETAILS_STRUCT_VERSION 0x0000000000060000
+#define DDR_DETAILS_STRUCT_VERSION 0x0000000000070000
 
 #define DDR_REGIONS_ENTRY_SMEM_OFFSET sizeof(ddr_details_entry)
 #define SHUB_FREQ_PLAN_ENTRY_SMEM_OFFSET \
@@ -91,6 +91,7 @@ typedef struct ddr_details_entry_info {
   struct  ddr_part_details ddr_params[MAX_IDX_CH];
   ddr_freq_plan_entry     ddr_freq_tbl;
   UINT8   num_channels;
+  UINT8   sct_config;
 } ddr_details_entry;
 
 typedef struct
