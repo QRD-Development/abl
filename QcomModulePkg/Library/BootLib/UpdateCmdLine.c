@@ -847,6 +847,7 @@ UpdateBootConfigParams (LIST_ENTRY *BootConfigListHead,
   Link = GetFirstNode (BootConfigListHead);
   if (!Link) {
     DEBUG ((EFI_D_INFO, "Error in Node entry \n"));
+    return EFI_D_ERROR;
   }
 
   gBS->CopyMem (Dst, "\n", SIZE_OF_DELIM);
