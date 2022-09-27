@@ -91,6 +91,7 @@
                          CmdLineL += ParamLen; \
                        }\
                      } while (0);
+#define GB (1024UL * 1024UL * 1024UL)
 STATIC CONST CHAR8 *DynamicBootDeviceCmdLine =
                                       " androidboot.boot_devices=soc/";
 STATIC CONST CHAR8 *BootDeviceCmdLine = " androidboot.bootdevice=";
@@ -116,6 +117,8 @@ STATIC CHAR8 DisplayCmdLine[MAX_DISPLAY_CMD_LINE];
 STATIC UINTN DisplayCmdLineLen = sizeof (DisplayCmdLine);
 
 #define MAX_DTBO_IDX_STR 64
+#define MAX_DDR_SUFFIX 10
+#define MAX_FSTAB_SUFFIX 17
 STATIC CHAR8 *AndroidBootDtboIdx = " androidboot.dtbo_idx=";
 STATIC CHAR8 *AndroidBootDtbIdx = " androidboot.dtb_idx=";
 
@@ -123,8 +126,8 @@ STATIC CONST CHAR8 *AndroidBootForceNormalBoot =
                                       " androidboot.force_normal_boot=1";
 STATIC CONST CHAR8 *AndroidBootFstabSuffix =
                                       " androidboot.fstab_suffix=";
-STATIC CHAR8 *FstabSuffixEmmc = "emmc";
-STATIC CHAR8 *FstabSuffixDefault = "default";
+STATIC CHAR8 FstabSuffixEmmc[MAX_FSTAB_SUFFIX] = "emmc";
+STATIC CHAR8 FstabSuffixDefault[MAX_FSTAB_SUFFIX] = "default";
 
 /* Memory offline arguments */
 STATIC CHAR8 *MemOff = " mem=";
@@ -947,7 +950,11 @@ UpdateCmdLine (CONST CHAR8 *CmdLine,
   CHAR8 RootDevStr[BOOT_DEV_NAME_SIZE_MAX];
   CHAR8 MemOffAmt[MEM_OFF_SIZE];
   BOOLEAN BootConfigFlag = FALSE;
-
+#ifdef FSTAB_DDR_SUFFIX
+  UINT64 DdrSize = 0;
+  UINT32 DdrSizeGb = 0;
+  CHAR8 DdrSuffix[MAX_DDR_SUFFIX];
+#endif
   BootConfigListHead = (LIST_ENTRY*) AllocateZeroPool (sizeof (LIST_ENTRY));
   if (!BootConfigListHead) {
     DEBUG ((EFI_D_ERROR,
@@ -1232,6 +1239,21 @@ UpdateCmdLine (CONST CHAR8 *CmdLine,
   } else {
     Param.FstabSuffix = FstabSuffixDefault;
   }
+
+#ifdef FSTAB_DDR_SUFFIX
+  Status = GetDdrSize (&DdrSize);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_INFO, "Error getting DDR size %r\n", Status));
+  } else {
+    DdrSize = ALIGN_VALUE (DdrSize, GB);
+    DdrSizeGb = DdrSize / GB;
+    AsciiSPrint (DdrSuffix, MAX_DDR_SUFFIX, "_%ugbDDR", DdrSizeGb);
+    AsciiStrCatS (Param.FstabSuffix, MAX_FSTAB_SUFFIX, DdrSuffix);
+  }
+#else
+  DEBUG ((EFI_D_INFO, "FSTAB_DDR_SUFFIX not set\n"));
+#endif
+
   Param.AndroidBootFstabSuffix = AndroidBootFstabSuffix;
   AddtoBootConfigList (BootConfigFlag, AndroidBootFstabSuffix,
                   Param.FstabSuffix,

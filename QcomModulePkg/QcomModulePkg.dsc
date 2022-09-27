@@ -134,6 +134,9 @@
   !if $(VIRTUAL_AB_OTA)
       GCC:*_*_*_CC_FLAGS = -DVIRTUAL_AB_OTA
   !endif
+  !if $(FSTAB_DDR_SUFFIX) == 1
+      GCC:*_*_*_CC_FLAGS = -DFSTAB_DDR_SUFFIX
+  !endif
   !if $(BUILD_USES_RECOVERY_AS_BOOT)
       GCC:*_*_*_CC_FLAGS = -DBUILD_USES_RECOVERY_AS_BOOT
   !endif
