@@ -24,12 +24,7 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * Changes from Qualcomm Innovation Center are provided under the following
- * license:
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
 */
-// SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #include "AutoGen.h"
 #include <Board.h>
@@ -486,7 +481,6 @@ EFI_STATUS BoardInit (VOID)
   EFI_STATUS Status;
   EFIChipInfoModemType ModemType;
   UINT32 DdrType;
-  EFI_SOFT_SKU_ID SKUId;
 
   Status = GetChipInfo (&platform_board_info, &ModemType);
   if (EFI_ERROR (Status))
@@ -501,9 +495,6 @@ EFI_STATUS BoardInit (VOID)
     return Status;
 
   platform_board_info.HlosSubType = (DdrType << DDR_SHIFT);
-
-  BoardSoftSku (&SKUId);
-  platform_board_info.SoftSkuId = SKUId.eSoftSKUId;
 
   if (BoardPlatformFusion ()) {
     AsciiSPrint ((CHAR8 *)platform_board_info.ChipBaseBand,
@@ -528,8 +519,6 @@ EFI_STATUS BoardInit (VOID)
           platform_board_info.PlatformInfo.fusion));
   DEBUG ((EFI_D_VERBOSE, "HLOS SubType    : 0x%x\n",
           platform_board_info.HlosSubType));
-  DEBUG ((EFI_D_VERBOSE, "SoftSKUId    : 0x%x\n",
-          platform_board_info.SoftSkuId));
 
   return Status;
 }
@@ -754,45 +743,4 @@ EFI_STATUS BoardDdrType (UINT32 *Type)
 UINT32 BoardPlatformHlosSubType (VOID)
 {
   return platform_board_info.HlosSubType;
-}
-
-VOID BoardSoftSku (EFI_SOFT_SKU_ID *SKUId)
-{
-  EFI_STATUS Status = EFI_SUCCESS;
-  EFI_QTI_SOFT_SKU_PROTOCOL *pSoftSkuProtocol = NULL;
-  EFI_SOFT_SKU_STATUS TAStatus;
-
-  SKUId->eSoftSKUId = 0;
-  Status = gBS->LocateProtocol (&gEfiSoftSkuProtocolGuid, NULL,
-                                       (VOID **)&pSoftSkuProtocol);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((EFI_D_ERROR,
-          "Locate EFI_SOFTSKU_Protocol failed, Status = (0x%x)\r\n", Status));
-    return;
-  }
-
-  Status = pSoftSkuProtocol->SoftSKUQueryStatus (&TAStatus);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((EFI_D_ERROR,
-            "SoftSKUQueryStatus failed, Status = (0x%x)\r\n", Status));
-    SKUId->eSoftSKUId = 1;
-    return;
-  }
-
-  if (TAStatus.eTALoadStatus == SOFT_SKU_STATUS_SUCCESS) {
-    Status = pSoftSkuProtocol->SoftSKUQuerySKUId (SKUId);
-    if (EFI_ERROR (Status)) {
-      DEBUG ((EFI_D_ERROR,
-              "SoftSKUQuerySKUId failed, Status = (0x%x)\r\n", Status));
-      SKUId->eSoftSKUId = 1;
-    }
-
-    DEBUG ((EFI_D_VERBOSE,
-            "SkuId Query Success, SkuId:(0x%x)\r\n", SKUId->eSoftSKUId));
-  }
-}
-
-UINT32 BoardSoftSkuId (VOID)
-{
-  return platform_board_info.SoftSkuId;
 }
