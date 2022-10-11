@@ -83,7 +83,6 @@ typedef struct UpdateCmdLineParamList {
   CHAR8 *FstabSuffix;
   UINT32 HeaderVersion;
   CONST CHAR8 *SystemdSlotEnv;
-  CHAR8 *SoftSkuStr;
 } UpdateCmdLineParamList;
 
 EFI_STATUS
