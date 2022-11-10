@@ -24,12 +24,7 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * Changes from Qualcomm Innovation Center are provided under the following
- * license:
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
 */
-// SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #ifndef __LOCATEDEVICETREE_H__
 #define __LOCATEDEVICETREE_H__
@@ -128,7 +123,6 @@ typedef enum {
   PMIC_MATCH_EXACT_MODEL_IDXE,
   PMIC_MATCH_DEFAULT_MODEL_IDXF,
   PMIC_MATCH_EXACT_MODEL_IDXF,
-  SOFTSKU_EXACT_MATCH,
   SUBTYPE_DEFAULT_MATCH,
   SUBTYPE_EXACT_MATCH,
   DDR_MATCH,
@@ -148,7 +142,7 @@ typedef enum {
    BIT (PMIC_MATCH_EXACT_MODEL_IDX9) | BIT (PMIC_MATCH_EXACT_MODEL_IDXA) | \
    BIT (PMIC_MATCH_EXACT_MODEL_IDXB) | BIT (PMIC_MATCH_EXACT_MODEL_IDXC) | \
    BIT (PMIC_MATCH_EXACT_MODEL_IDXD) | BIT (PMIC_MATCH_EXACT_MODEL_IDXE) | \
-   BIT (PMIC_MATCH_EXACT_MODEL_IDXF) | BIT (SOFTSKU_EXACT_MATCH))
+   BIT (PMIC_MATCH_EXACT_MODEL_IDXF))
 
 typedef enum {
   PMIC_IDX0,
@@ -173,7 +167,6 @@ typedef struct DtInfo {
   UINT32 DtVariantMajor;
   UINT32 DtVariantMinor;
   UINT32 DtPlatformSubtype;
-  UINT32 DtSoftSkuId;
   UINT32 DtPmicModel[MAX_PMIC_IDX];
   UINT32 DtPmicRev[MAX_PMIC_IDX];
   UINT64 DtMatchVal;
@@ -200,7 +193,6 @@ struct dt_entry {
   UINT64 offset;
   UINT32 size;
   UINT32 Idx;
-  UINT32 SkuId;
 };
 
 /*Struct def for device tree entry*/
@@ -242,10 +234,6 @@ struct board_id {
 struct pmic_id {
   UINT32 pmic_version[4];
 };
-
-typedef struct softsku_id {
-  UINT32 SkuId;
-} softsku_id;
 
 #define PLAT_ID_SIZE    sizeof (struct plat_id)
 #define BOARD_ID_SIZE   sizeof (struct board_id)
