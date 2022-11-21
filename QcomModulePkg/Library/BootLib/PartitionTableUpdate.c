@@ -1617,7 +1617,7 @@ ValidateSlotGuids (Slot *BootableSlot)
 {
   EFI_STATUS Status = EFI_SUCCESS;
   struct PartitionEntry *BootEntry = NULL;
-  CHAR16 PartitionName[] = L"abl_x";
+  CHAR16 PartitionName[10];
   CONST struct PartitionEntry *PartEntry = NULL;
   CHAR8 BootDeviceType[BOOT_DEV_NAME_SIZE_MAX];
   UINT32 UfsBootLun = 0;
@@ -1629,6 +1629,18 @@ ValidateSlotGuids (Slot *BootableSlot)
             BootableSlot->Suffix));
     return EFI_NOT_FOUND;
   }
+
+  GetRootDeviceType (BootDeviceType, BOOT_DEV_NAME_SIZE_MAX);
+  if (IsLEVariant () &&
+      !IsDynamicPartitionSupport () &&
+      !AsciiStrnCmp (BootDeviceType, "EMMC", AsciiStrLen ("EMMC"))) {
+    StrnCpyS (PartitionName, sizeof (PartitionName),
+              L"system_x", sizeof (L"system_x"));
+  } else {
+    StrnCpyS (PartitionName, sizeof (PartitionName),
+              L"abl_x", sizeof (L"abl_x"));
+  }
+
 
   PartitionName[StrLen (PartitionName) - 1] =
       BootableSlot->Suffix[StrLen (BootableSlot->Suffix) - 1];
@@ -1652,7 +1664,6 @@ ValidateSlotGuids (Slot *BootableSlot)
     return EFI_DEVICE_ERROR;
   }
 
-  GetRootDeviceType (BootDeviceType, BOOT_DEV_NAME_SIZE_MAX);
   if (!AsciiStrnCmp (BootDeviceType, "UFS", AsciiStrLen ("UFS"))) {
     GUARD (UfsGetSetBootLun (&UfsBootLun, TRUE));
     if (UfsBootLun == 0x1 &&
