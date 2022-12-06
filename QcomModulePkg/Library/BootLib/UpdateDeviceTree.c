@@ -47,6 +47,8 @@
 #define NUM_SPLASHMEM_PROP_ELEM 4
 #define DEFAULT_CELL_SIZE 2
 #define NUM_RNG_SEED_WORDS 512
+#define DDRGETINFO_BASE_REVISION 0x0000000000050000
+#define SCT_CONFIG_BASE_REVISION 0x0000000000070000
 
 STATIC struct FstabNode FstabTable = {"/firmware/android/fstab", "dev",
                                       "/soc/"};
@@ -97,7 +99,7 @@ GetDDRInfo (struct ddr_details_entry_info *DdrInfo)
   Revision = DdrInfoIf->Revision;
   DEBUG ((EFI_D_VERBOSE, "GetDDRInfo: DDR Header Revision =0x%x\n", Revision));
 
-  if (Revision < EFI_DDRGETINFO_PROTOCOL_REVISION) {
+  if (Revision < DDRGETINFO_BASE_REVISION) {
     DEBUG ((EFI_D_VERBOSE,
             "ddr_device_rank, HBB not supported in Revision=0x%x\n", Revision));
     return EFI_UNSUPPORTED;
@@ -123,7 +125,7 @@ GetSCTConfig (UINT8 *SCTConfig)
   }
 
   Revision = DdrInfoIf->Revision;
-  if (Revision < EFI_DDRGETINFO_PROTOCOL_REVISION) {
+  if (Revision < SCT_CONFIG_BASE_REVISION) {
     DEBUG ((EFI_D_VERBOSE,
             "SCTConfig not supported in Revision=0x%x\n", Revision));
     return EFI_UNSUPPORTED;
@@ -718,7 +720,7 @@ GetDDrRegionsInfo (struct ddr_regions_data_info *DdrRegionsInfo)
   Revision = pDDrGetInfoProtocol->Revision;
   DEBUG ((EFI_D_VERBOSE, "DDR Header Revision =0x%x\n", Revision));
 
-  if (Revision < EFI_DDRGETINFO_PROTOCOL_REVISION) {
+  if (Revision < DDRGETINFO_BASE_REVISION) {
     DEBUG ((EFI_D_VERBOSE,
             "GetDDRMappedRegions not supported in Revision=0x%x\n", Revision));
     return EFI_UNSUPPORTED;
