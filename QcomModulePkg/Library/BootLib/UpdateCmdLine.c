@@ -80,6 +80,8 @@ STATIC CONST CHAR8 *AndroidBootFstabSuffix =
                                       " androidboot.fstab_suffix=";
 STATIC CHAR8 *FstabSuffixEmmc = "emmc";
 STATIC CHAR8 *FstabSuffixDefault = "default";
+#define MAX_SOFTSKU_IDX_STR 23
+STATIC CHAR8 *SoftSkuIdxStr = " socinfo.softsku_idx=";
 
 EFI_STATUS
 TargetPauseForBatteryCharge (BOOLEAN *BatteryStatus)
@@ -549,6 +551,10 @@ UpdateCmdLineParams (UpdateCmdLineParamList *Param,
     Param->LEVerityCmdLine = NULL;
   }
 
+  if (Param->SoftSkuStr != NULL) {
+    Src = Param->SoftSkuStr;
+    AsciiStrCatS (Dst, MaxCmdLineLen, Src);
+  }
   return EFI_SUCCESS;
 }
 
@@ -582,6 +588,8 @@ UpdateCmdLine (CONST CHAR8 *CmdLine,
   CHAR8 *LEVerityCmdLine = NULL;
   UINT32 LEVerityCmdLineLen = 0;
   CHAR8 RootDevStr[BOOT_DEV_NAME_SIZE_MAX];
+  CHAR8 SoftSkuStr[MAX_SOFTSKU_IDX_STR] = "\0";
+  INT32 SkuIdx = 0;
 
   Status = BoardSerialNum (StrSerialNum, sizeof (StrSerialNum));
   if (Status != EFI_SUCCESS) {
@@ -738,6 +746,12 @@ UpdateCmdLine (CONST CHAR8 *CmdLine,
   CmdLineLen += AsciiStrLen (Param.FstabSuffix);
   Param.AndroidBootFstabSuffix = AndroidBootFstabSuffix;
 
+  SkuIdx = BoardSoftSkuId ();
+  if (SkuIdx) {
+      AsciiSPrint (SoftSkuStr, sizeof (SoftSkuStr),
+                   "%a%d", SoftSkuIdxStr , SkuIdx);
+      CmdLineLen += AsciiStrLen (SoftSkuStr);
+  }
   /* 1 extra byte for NULL */
   CmdLineLen += 1;
 
@@ -772,6 +786,7 @@ UpdateCmdLine (CONST CHAR8 *CmdLine,
   Param.LEVerityCmdLine = LEVerityCmdLine;
   Param.HeaderVersion = HeaderVersion;
   Param.SystemdSlotEnv = SystemdSlotEnv;
+  Param.SoftSkuStr = SoftSkuStr;
 
   Status = UpdateCmdLineParams (&Param, FinalCmdLine);
   if (Status != EFI_SUCCESS) {
