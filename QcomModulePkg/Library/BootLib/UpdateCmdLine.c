@@ -122,8 +122,9 @@ STATIC UINTN DisplayCmdLineLen = sizeof (DisplayCmdLine);
 STATIC CHAR8 *AndroidBootDtboIdx = " androidboot.dtbo_idx=";
 STATIC CHAR8 *AndroidBootDtbIdx = " androidboot.dtb_idx=";
 
-STATIC CONST CHAR8 *AndroidBootForceNormalBoot =
-                                      " androidboot.force_normal_boot=1";
+STATIC CHAR8 *AndroidBootForceNormalBoot =
+                                      " androidboot.force_normal_boot=";
+CHAR8 *BootForceNormalBoot = "0";
 STATIC CONST CHAR8 *AndroidBootFstabSuffix =
                                       " androidboot.fstab_suffix=";
 STATIC CHAR8 FstabSuffixEmmc[MAX_FSTAB_SUFFIX] = "emmc";
@@ -694,8 +695,13 @@ UpdateCmdLineParams (UpdateCmdLineParamList *Param,
       !Param->Recovery) ||
       (!Param->MultiSlotBoot &&
        !IsBuildUseRecoveryAsBoot ())) {
-    if (Param->HeaderVersion <= BOOT_HEADER_VERSION_THREE) {
+    if (Param->HeaderVersion < BOOT_HEADER_VERSION_THREE) {
+      BootForceNormalBoot[0] = '1';
+    }
+    if (Param->HeaderVersion >= BOOT_HEADER_VERSION_THREE) {
       Src = AndroidBootForceNormalBoot;
+      AsciiStrCatS (Dst, MaxCmdLineLen, Src);
+      Src = BootForceNormalBoot;
       AsciiStrCatS (Dst, MaxCmdLineLen, Src);
     }
   }
@@ -1212,6 +1218,11 @@ UpdateCmdLine (CONST CHAR8 *CmdLine,
     }
   }
 
+  if (!IsRecoveryHasNoKernel () &&
+      !Recovery) {
+    *BootForceNormalBoot = '1';
+  }
+
   if (((IsBuildUseRecoveryAsBoot () ||
       IsRecoveryHasNoKernel ()) &&
       IsDynamicPartitionSupport () &&
@@ -1223,8 +1234,12 @@ UpdateCmdLine (CONST CHAR8 *CmdLine,
                                            ParamLen, HeaderVersion);
     ADD_PARAM_LEN (BootConfigFlag, ParamLen, CmdLineLen,
                                          BootConfigLen);
-    AddtoBootConfigList (BootConfigFlag, AndroidBootForceNormalBoot, NULL,
-                    BootConfigListHead, ParamLen, 0);
+    AddtoBootConfigList (BootConfigFlag, AndroidBootForceNormalBoot,
+                    BootForceNormalBoot,
+                    BootConfigListHead, ParamLen,
+                    AsciiStrLen (BootForceNormalBoot));
+    ADD_PARAM_LEN (BootConfigFlag, AsciiStrLen (BootForceNormalBoot),
+                   CmdLineLen, BootConfigLen);
   }
 
   ParamLen = AsciiStrLen (AndroidBootFstabSuffix);
