@@ -49,7 +49,7 @@ found at
 /*
  * Changes from Qualcomm Innovation Center are provided under the following license:
  *
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted (subject to the limitations in the
@@ -458,7 +458,7 @@ STATIC VOID FastbootPublishSlotVars (VOID)
   CHAR8 *Suffix = NULL;
   UINT32 PartitionCount = 0;
   CHAR8 PartitionNameAscii[MAX_GPT_NAME_SIZE];
-  UINT32 RetryCount = 0;
+  UINT64 RetryCount = 0;
   BOOLEAN Set = FALSE;
   STATIC BOOLEAN IsMultiSlot_ABC;
   IsMultiSlot_ABC = (SlotCount == MAX_SLOTS);
