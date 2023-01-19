@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 #ifndef __EFISOFTSKU_H__
@@ -77,7 +77,8 @@ typedef enum
 {
   SOFT_SKU_ID_FP1 = 0x1,  /*soft SKU Feature Package 1 (Low SKU) */
   SOFT_SKU_ID_FP2,        /*soft SKU Feature Package 2 (Mid SKU) */
-  SOFT_SKU_ID_FP3         /*soft SKU Feature Package 3 (High SKU) */
+  SOFT_SKU_ID_FP3,         /*soft SKU Feature Package 3 (High SKU) */
+  SOFT_SKU_ID_FP_B3 = 0x7  /*soft SKU Feature Package B3*/
 } EFI_SOFT_SKU_ID_TYPE;
 
 /* record module name and execution status */
