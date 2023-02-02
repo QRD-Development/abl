@@ -429,9 +429,16 @@ GetSystemPath (CHAR8 **SysPath, BootInfo *Info)
             " rootfstype=ext4 ubi.mtd=%d ubi.block=0,0 root=/dev/dm-0",
             (Index - 1));
       } else {
-        AsciiSPrint (*SysPath, MAX_PATH_SIZE,
-            " rootfstype=ubifs rootflags=bulk_read root=ubi0:rootfs ubi.mtd=%d",
-            (Index - 1));
+        Slot CurSlot = GetCurrentSlotSuffix ();
+        if (Info->MultiSlotBoot) {
+          AsciiSPrint (*SysPath, MAX_PATH_SIZE,
+          " rootfstype=ubifs rootflags=bulk_read root=ubi0:rootfs%s ubi.mtd=%d",
+                 CurSlot.Suffix, (Index - 1));
+        } else {
+          AsciiSPrint (*SysPath, MAX_PATH_SIZE,
+          " rootfstype=ubifs rootflags=bulk_read root=ubi0:rootfs ubi.mtd=%d",
+                 (Index - 1));
+        }
       }
     }
   } else if (!AsciiStrCmp ("UFS", RootDevStr)) {
