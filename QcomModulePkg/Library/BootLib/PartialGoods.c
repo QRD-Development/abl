@@ -30,7 +30,7 @@
 /*
  * Changes from Qualcomm Innovation Center are provided under the following license:
  *
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted (subject to the limitations in the
@@ -331,9 +331,6 @@ static struct PartialGoods PartialGoodsMmType[] = {
      {"qcom,msm-adsprpc-mem", "status", "ok", "no"}},
     {BIT (EFICHIPINFO_PART_AUDIO),
      "/soc",
-     {"qcom,msm_fastrpc", "status", "ok", "no"}},
-    {BIT (EFICHIPINFO_PART_AUDIO),
-     "/soc",
      {"remoteproc-adsp", "status", "ok", "no"}},
     {BIT (EFICHIPINFO_PART_MODEM),
      "/soc",
@@ -352,19 +349,7 @@ static struct PartialGoods PartialGoodsMmType[] = {
      {"qcom,turing", "status", "ok", "no"}},
     {BIT (EFICHIPINFO_PART_COMP),
      "/soc",
-     {"qcom,msm-adsprpc-mem", "status", "ok", "no"}},
-    {BIT (EFICHIPINFO_PART_COMP),
-     "/soc",
-     {"qcom,msm_fastrpc", "status", "ok", "no"}},
-    {BIT (EFICHIPINFO_PART_COMP),
-     "/soc",
      {"remoteproc-cdsp", "status", "ok", "no"}},
-    {BIT (EFICHIPINFO_PART_SENSORS),
-     "/soc",
-     {"qcom,msm-adsprpc-mem", "status", "ok", "no"}},
-    {BIT (EFICHIPINFO_PART_SENSORS),
-     "/soc",
-     {"qcom,msm_fastrpc", "status", "ok", "no"}},
     {BIT (EFICHIPINFO_PART_SENSORS),
      "/soc",
      {"qcom,ssc", "status", "ok", "no"}},
