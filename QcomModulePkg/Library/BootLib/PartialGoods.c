@@ -30,7 +30,7 @@
 /*
  * Changes from Qualcomm Innovation Center are provided under the following license:
  *
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted (subject to the limitations in the
@@ -433,11 +433,25 @@ FindNodeAndUpdateProperty (VOID *fdt,
                       (CONST VOID *)SNode->ReplaceStr,
                       AsciiStrLen (SNode->ReplaceStr) + 1);
     if (!Ret) {
-      DEBUG ((EFI_D_INFO, "Partial goods (%a) status property disabled\n",
-              SNode->SubNodeName));
+      DEBUG ((EFI_D_INFO, "Partial goods (%a) %a property disabled\n",
+              SNode->SubNodeName, SNode->PropertyName));
     } else {
       DEBUG ((EFI_D_ERROR, "Failed to update property: %a, ret =%d \n",
               SNode->PropertyName, Ret));
+    }
+
+    if (!AsciiStrCmp (Table->ParentNode, "/cpus")) {
+      /* Add/Replace the status property to fail */
+      Ret = FdtSetProp (fdt, SubNodeOffset, "status",
+                        (CONST VOID *)"fail",
+                        AsciiStrLen ("fail") + 1);
+      if (!Ret) {
+        DEBUG ((EFI_D_INFO, "Partial goods (%a) status property updated\n",
+                SNode->SubNodeName));
+      } else {
+        DEBUG ((EFI_D_ERROR, "Failed to update property: %a, ret =%d \n",
+                SNode->SubNodeName, Ret));
+      }
     }
   }
 }
