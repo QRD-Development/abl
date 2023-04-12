@@ -29,7 +29,7 @@
 /* Changes from Qualcomm Innovation Center are provided under the following
  * license:
  *
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted (subject to the limitations in the
@@ -1621,13 +1621,6 @@ STATIC EFI_STATUS LoadImageAndAuthForLE (BootInfo *Info)
         return Status;
     }
 
-    if (!SecureDevice) {
-      if (!TargetBuildVariantUser () ) {
-          DEBUG ((EFI_D_INFO, "VB: verification skipped for debug builds\n"));
-          goto skip_verification;
-      }
-    }
-
     /* Initialize Verified Boot*/
     device_info_vb_t DevInfo_vb;
     DevInfo_vb.is_unlocked = IsUnlocked ();
@@ -1665,12 +1658,20 @@ STATIC EFI_STATUS LoadImageAndAuthForLE (BootInfo *Info)
     if (Status != EFI_SUCCESS) {
         DEBUG ((EFI_D_ERROR, "VB: Error during "
                       "LEVBVerifyHashWithSignature: %r\n", Status));
-        return Status;
+
+       /* There are build variants where boot image is not signed.
+        * Below check allows the device to bootup even if the
+        * authentication fails on a Non-secure device.
+        * Note: Root of Trust cannnot be set if image
+        * authentication fails or boot image is not signed.
+        */
+        if (SecureDevice ||
+            TargetBuildVariantUser () ) {
+            return Status;
+        }
     }
     DEBUG ((EFI_D_INFO, "VB: LoadImageAndAuthForLE complete!\n"));
 
-
-skip_verification:
     Status = Info->VbIntf->VBIsKeymasterEnabled (Info->VbIntf,
                                                   &KeymasterEnabled);
     if (Status != EFI_SUCCESS) {
