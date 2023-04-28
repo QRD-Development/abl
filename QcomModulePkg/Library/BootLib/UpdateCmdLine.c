@@ -101,6 +101,7 @@ STATIC CONST CHAR8 *AndroidBootMode = " androidboot.mode=";
 STATIC CONST CHAR8 *LogLevel = " quite";
 STATIC CONST CHAR8 *BatteryChgPause = " androidboot.mode=charger";
 STATIC CONST CHAR8 *MdtpActiveFlag = " mdtp";
+STATIC CONST CHAR8 *PartActiveBoot = " part.activeboot=boot";
 STATIC CONST CHAR8 *AlarmBootCmdLine = " androidboot.alarmboot=true";
 STATIC CHAR8 SystemdSlotEnv[] = " systemd.setenv=\"SLOT_SUFFIX=_a\"";
 STATIC CONST CHAR8 *NoPasr = " mem_offline.nopasr=1";
@@ -630,6 +631,18 @@ UpdateCmdLineParams (UpdateCmdLineParamList *Param,
     AsciiStrCatS (Dst, MaxCmdLineLen, Src);
   }
 
+  if (NAND == CheckRootDeviceType ()) {
+    Src = PartActiveBoot;
+    AsciiStrCatS (Dst, MaxCmdLineLen, Src);
+    if (Param->MultiSlotBoot) {
+      Slot CurSlot = GetCurrentSlotSuffix ();
+      char CurSlotSuffix[sizeof (CurSlot.Suffix)];
+      AsciiSPrint (CurSlotSuffix, sizeof (CurSlot.Suffix),
+                       "%s", CurSlot.Suffix);
+      AsciiStrCatS (Dst, MaxCmdLineLen, CurSlotSuffix);
+    }
+  }
+
   if (Param->MultiSlotBoot &&
      !IsBootDevImage ()) {
     UnicodeStrToAsciiStr (GetCurrentSlotSuffix ().Suffix,
@@ -1157,6 +1170,21 @@ UpdateCmdLine (CONST CHAR8 *CmdLine,
     }
   }
 
+  if (NAND == CheckRootDeviceType ()) {
+    if (MultiSlotBoot) {
+      /* Add additional length for slot suffix */
+      ParamLen = AsciiStrLen (PartActiveBoot) + MAX_SLOT_SUFFIX_SZ;
+    } else {
+      ParamLen = AsciiStrLen (PartActiveBoot);
+    }
+    BootConfigFlag = IsAndroidBootParam (PartActiveBoot,
+                 ParamLen, HeaderVersion);
+    ADD_PARAM_LEN (BootConfigFlag, ParamLen, CmdLineLen,
+                 BootConfigLen);
+    AddtoBootConfigList (BootConfigFlag, PartActiveBoot, NULL,
+                 BootConfigListHead, ParamLen, 0);
+  }
+
   if ((IsBuildAsSystemRootImage () &&
       !MultiSlotBoot) ||
       (MultiSlotBoot &&
@@ -1235,7 +1263,7 @@ UpdateCmdLine (CONST CHAR8 *CmdLine,
       IsDynamicPartitionSupport () &&
       !Recovery) ||
       (!MultiSlotBoot &&
-       !IsBuildUseRecoveryAsBoot ())) { 
+       !IsBuildUseRecoveryAsBoot ())) {
     ParamLen = AsciiStrLen (AndroidBootForceNormalBoot);
     BootConfigFlag = IsAndroidBootParam (AndroidBootForceNormalBoot,
                                            ParamLen, HeaderVersion);
