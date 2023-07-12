@@ -63,6 +63,7 @@ endif
 
 INCLUDE = $(TOOL_INCLUDE) -I $(MAKEROOT) -I $(MAKEROOT)/Include/Common -I $(MAKEROOT)/Include/ -I $(MAKEROOT)/Include/IndustryStandard -I $(MAKEROOT)/Common/ -I .. -I . $(ARCH_INCLUDE)
 BUILD_CPPFLAGS = $(INCLUDE)
+BUILD_CPPFLAGS += -Wno-register
 
 # keep EXTRA_OPTFLAGS last
 BUILD_OPTFLAGS = -O2 $(EXTRA_OPTFLAGS)
