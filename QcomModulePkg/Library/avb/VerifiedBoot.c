@@ -1873,15 +1873,16 @@ LoadImageAndAuth (BootInfo *Info)
 
   if (AVBVersion != AVB_LE) {
     DisplayVerifiedBootScreen (Info);
-    DEBUG ((EFI_D_VERBOSE, "Sending Milestone Call\n"));
-    if (KeymasterEnabled) {
-      Status = Info->VbIntf->VBSendMilestone (Info->VbIntf);
-    }
-    if (Status != EFI_SUCCESS) {
-      DEBUG ((EFI_D_ERROR, "Error sending milestone call to TZ\n"));
-      return Status;
-    }
   }
+
+  DEBUG ((EFI_D_VERBOSE, "Sending Milestone Call\n"));
+  if (KeymasterEnabled) {
+    Status = Info->VbIntf->VBSendMilestone (Info->VbIntf);
+  }
+  if (Status != EFI_SUCCESS) {
+    DEBUG ((EFI_D_ERROR, "Error sending milestone call to TZ\n"));
+  }
+
   return Status;
 }
 
