@@ -712,6 +712,9 @@ FindLabelAndUpdateProperty (VOID *fdt,
     SymbolsOffset = FdtPathOffset (fdt, SymbolsDtNode);
     LabelNodePath = fdt_getprop (fdt, SymbolsOffset, Label,
                                   &PropLen);
+    if (!LabelNodePath) {
+      continue;
+    }
     NodeOffset = FdtPathOffset (fdt, LabelNodePath);
     DEBUG ((EFI_D_INFO, "Label: %a, Node Path: %a, NodeOffset:%d\n",
              Label, LabelNodePath, NodeOffset));
