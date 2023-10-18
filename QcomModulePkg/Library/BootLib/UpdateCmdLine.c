@@ -463,7 +463,7 @@ GetMemoryLimit (VOID *fdt, CHAR8 *MemOffAmt)
 {
   UINT64 DdrSize = 0;
   UINT64 MemLimit;
-  UINT32 i = 0;
+  INT32 i = 0;
   INT32 MemOfflineOffset;
   UINT64 *MemTable;
   INT32 PropLen;
