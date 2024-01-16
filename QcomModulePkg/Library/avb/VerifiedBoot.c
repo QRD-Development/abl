@@ -29,7 +29,7 @@
 /* Changes from Qualcomm Innovation Center are provided under the following
  * license:
  *
- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted (subject to the limitations in the
@@ -400,7 +400,7 @@ LoadBootImageNoAuth (BootInfo *Info, UINT32 *PageSize, BOOLEAN *FastbootPath)
   VOID *RecoveryImageHdrBuffer = NULL;
   UINT32 RecoveryImageHdrSize = 0;
   BOOLEAN BootImageLoaded;
-
+  UINT32 Vendor_bootImageSizeActual = 0;
   /** The Images[0].ImageBuffer would have been loaded with the boot image
    *  already if we are coming from fastboot boot path. Ignore loading it
    *  again.
@@ -458,7 +458,8 @@ LoadBootImageNoAuth (BootInfo *Info, UINT32 *PageSize, BOOLEAN *FastbootPath)
    */
   Status = CheckImageHeader (ImageHdrBuffer, ImageHdrSize,
                              VendorImageHdrBuffer, VendorImageHdrSize,
-                             &ImageSizeActual, PageSize, BootIntoRecovery,
+                             &ImageSizeActual, &Vendor_bootImageSizeActual, 
+                             PageSize, BootIntoRecovery,
                              RecoveryImageHdrBuffer);
   if (Status != EFI_SUCCESS) {
     DEBUG ((EFI_D_ERROR, "Invalid boot image header:%r\n", Status));
@@ -484,7 +485,6 @@ LoadBootImageNoAuth (BootInfo *Info, UINT32 *PageSize, BOOLEAN *FastbootPath)
   }
 
   Info->Images[0].ImageSize = ImageSizeActual;
-
   if (Info->HeaderVersion >= BOOT_HEADER_VERSION_THREE) {
     Status = NoAVBLoadPartitionImage (Info, (CHAR16 *)L"vendor_boot");
     if (Status != EFI_SUCCESS) {
@@ -493,6 +493,7 @@ LoadBootImageNoAuth (BootInfo *Info, UINT32 *PageSize, BOOLEAN *FastbootPath)
       goto ErrImgName;
     }
 
+  Info->Images[1].ImageSize = Vendor_bootImageSizeActual;
     if (BootIntoRecovery &&
         IsRecoveryHasNoKernel ()) {
       Status = NoAVBLoadPartitionImage (Info, (CHAR16 *)L"recovery");
@@ -504,7 +505,6 @@ LoadBootImageNoAuth (BootInfo *Info, UINT32 *PageSize, BOOLEAN *FastbootPath)
       }
     }
   }
-
   return EFI_SUCCESS;
 
 ErrRecImgName:
@@ -556,6 +556,7 @@ LoadImageNoAuth (BootInfo *Info)
   UINTN *ImgIdx = &Info->NumLoadedImages;
   UINT32 PageSize = 0;
   BOOLEAN FastbootPath;
+  struct DtboTableHdr *DtboTableHdr = NULL;
 
   Status = LoadBootImageNoAuth (Info, &PageSize, &FastbootPath);
   if (Status != EFI_SUCCESS) {
@@ -567,6 +568,17 @@ LoadImageNoAuth (BootInfo *Info)
                  (VOID **)&(Info->Images[*ImgIdx].ImageBuffer),
                  (UINT32 *)&(Info->Images[*ImgIdx].ImageSize),
                  Pname, (CHAR16 *)L"dtbo");
+
+  DtboTableHdr = Info->Images[*ImgIdx].ImageBuffer;
+  if (DtboTableHdr != NULL) {
+      Info->Images[*ImgIdx].ImageSize  = fdt32_to_cpu (DtboTableHdr->TotalSize);
+      if (Info->Images[*ImgIdx].ImageSize > DTBO_MAX_SIZE_ALLOWED) {
+          DEBUG ((EFI_D_ERROR, "DTBO size is too big: 0x%x\n",
+                      Info->Images[*ImgIdx].ImageSize));
+          Status = EFI_OUT_OF_RESOURCES;
+          goto Err;
+      }
+  }
   if (Status == EFI_NO_MEDIA) {
       DEBUG ((EFI_D_INFO, "No dtbo partition is found, Skip dtbo\n"));
       if (Info->Images[*ImgIdx].ImageBuffer != NULL) {
@@ -1387,7 +1399,7 @@ LoadImageAndAuthVB2 (BootInfo *Info)
 
   Status = CheckImageHeader (ImageBuffer, ImageHdrSize,
                              VendorBootImageBuffer, VendorBootImageSize,
-                             &ImageSizeActual, &PageSize,
+                             &ImageSizeActual, NULL, &PageSize,
                              Info->BootIntoRecovery, RecoveryImageBuffer);
   if (Status != EFI_SUCCESS) {
     DEBUG ((EFI_D_ERROR, "Invalid boot image header:%r\n", Status));
@@ -1574,6 +1586,45 @@ DisplayVerifiedBootScreen (BootInfo *Info)
   return EFI_SUCCESS;
 }
 
+STATIC EFI_STATUS
+Image_verification (BootInfo *Info, CERTIFICATE *OemCert, QcomAsn1x509Protocol
+                   *QcomAsn1X509Protocal, UINT32 Imagindex)
+{
+  VB_HASH HashAlgorithm = VB_SHA256;
+  UINTN HashSize = VB_SHA256_SIZE;
+  UINT8 *SigAddr = NULL;
+  UINT32 ImgSize =0;
+  UINT32 SigSize = 0;
+  UINT8 *ImgHash = NULL;
+  EFI_STATUS Status = EFI_SUCCESS;
+
+  if (OemCert == NULL ||
+      Info == NULL ||
+      QcomAsn1X509Protocal == NULL) {
+      DEBUG ((EFI_D_ERROR, "Image_verification: Invalid pointer\n"));
+      return EFI_INVALID_PARAMETER;
+  }
+  ImgSize = Info->Images[Imagindex].ImageSize;
+  ImgHash = AllocateZeroPool (HashSize);
+  if (ImgHash == NULL) {
+      DEBUG ((EFI_D_ERROR, "image hashbuffer allocation failed!\n"));
+      Status = EFI_OUT_OF_RESOURCES;
+      return Status;
+  }
+  Status = LEGetImageHash (QcomAsn1X509Protocal, HashAlgorithm,
+           (UINT8 *)Info->Images[Imagindex].ImageBuffer,
+           ImgSize, ImgHash, HashSize);
+  if (Status != EFI_SUCCESS) {
+      DEBUG ((EFI_D_ERROR, "VB: Error during VBGetImageHash:%r\n", Status));
+      return Status;
+  }
+  SigAddr = (UINT8 *)Info->Images[Imagindex].ImageBuffer + ImgSize;
+  SigSize = LE_BOOTIMG_SIG_SIZE;
+  Status = LEVerifyHashWithSignature (QcomAsn1X509Protocal, ImgHash,
+  HashAlgorithm, OemCert, SigAddr, SigSize);
+  return Status;
+}
+
 STATIC EFI_STATUS LoadImageAndAuthForLE (BootInfo *Info)
 {
     EFI_STATUS Status = EFI_SUCCESS;
@@ -1581,12 +1632,6 @@ STATIC EFI_STATUS LoadImageAndAuthForLE (BootInfo *Info)
     CONST UINT8 *OemCertFile = LeOemCertificate;
     UINTN OemCertFileLen = sizeof (LeOemCertificate);
     CERTIFICATE OemCert = {NULL};
-    UINTN HashSize;
-    UINT8 *ImgHash = NULL;
-    UINTN ImgSize;
-    VB_HASH HashAlgorithm;
-    UINT8 *SigAddr = NULL;
-    UINT32 SigSize = 0;
     CHAR8 *SystemPath = NULL;
     UINT32 SystemPathLen = 0;
     BOOLEAN SecureDevice = FALSE;
@@ -1594,6 +1639,7 @@ STATIC EFI_STATUS LoadImageAndAuthForLE (BootInfo *Info)
     secasn1_data_type Modulus = {NULL};
     secasn1_data_type PublicExp = {NULL};
     UINT32 PaddingType = 0;
+    BOOLEAN ImgVeriStatus = TRUE;
 
     /*Load image*/
     GUARD (VBAllocateCmdLine (Info));
@@ -1644,61 +1690,71 @@ STATIC EFI_STATUS LoadImageAndAuthForLE (BootInfo *Info)
         return Status;
     }
 
-    /*Calculate kernel image hash, SHA256 is used by default*/
-    HashAlgorithm = VB_SHA256;
-    HashSize = VB_SHA256_SIZE;
-    ImgSize = Info->Images[0].ImageSize;
-    ImgHash = AllocateZeroPool (HashSize);
-    if (ImgHash == NULL) {
-        DEBUG ((EFI_D_ERROR, "kernel image hashbuffer allocation failed!\n"));
-        Status = EFI_OUT_OF_RESOURCES;
-        return Status;
-    }
-    Status = LEGetImageHash (QcomAsn1X509Protocal, HashAlgorithm,
-                (UINT8 *)Info->Images[0].ImageBuffer,
-                ImgSize, ImgHash, HashSize);
-    if (Status != EFI_SUCCESS) {
-        DEBUG ((EFI_D_ERROR, "VB: Error during VBGetImageHash:%r\n", Status));
-        return Status;
-    }
-
-    SigAddr = (UINT8 *)Info->Images[0].ImageBuffer + ImgSize;
-    SigSize = LE_BOOTIMG_SIG_SIZE;
-    Status = LEVerifyHashWithSignature (QcomAsn1X509Protocal, ImgHash,
-    HashAlgorithm, &OemCert, SigAddr, SigSize);
-
-    if (Status != EFI_SUCCESS) {
-        DEBUG ((EFI_D_ERROR, "VB: Error during "
-                      "LEVBVerifyHashWithSignature: %r\n", Status));
-
-        /* There are build variants where boot image is not signed.
-         * Below check allows the device to bootup even if the
-         * authentication fails on a Non-secure device.
-         * Note: Dummy Root of Trust will be set if image
-         * authentication fails or boot image is not signed.
-         */
-         if (!SecureDevice &&
-             !TargetBuildVariantUser ()) {
-                if (KeymasterEnabled) {
-                    Data.PublicKeyModLength = DUMMY_PUBLIC_KEY_MOD_LEN;
-                    Data.PublicKeyMod = avb_calloc (DUMMY_PUBLIC_KEY_MOD_LEN);
-                    Data.PublicKeyExpLength = DUMMY_PUBLIC_KEY_EXP_LEN;
-                    Data.PublicKeyExp = avb_calloc (DUMMY_PUBLIC_KEY_EXP_LEN);
-                    if (Data.PublicKeyMod != NULL &&
-                            Data.PublicKeyExp != NULL) {
-                        Status = KeyMasterSetRotForLE (&Data);
-                        if (Status != EFI_SUCCESS) {
-                            DEBUG ((EFI_D_ERROR, "KeyMasterSetRotForLE failed "
+#ifdef VEN_DTB_SIGN_VERIFY 
+   /*Calculate kernel,vendor_boot,dtbo image hash, SHA256 is used by default*/
+   static CHAR8 *VbleImages[] = {"boot_a", "vendor_boot_a", "dtbo_a"};
+   for (UINT32 Imgindex = 0; Imgindex < Info->NumLoadedImages; Imgindex++) {
+        if (!avb_strv_find_str ((CONST CHAR8 *CONST *)VbleImages,
+                                 Info->Images[Imgindex].Name,
+                                 strlen (Info->Images[Imgindex].Name))) {
+            Status = Image_verification (Info, &OemCert, QcomAsn1X509Protocal,
+                                         Imgindex);
+        }
+        if (Status != EFI_SUCCESS) {
+            DEBUG ((EFI_D_ERROR, "VB: Error during "
+                          "Image_verification: %r\n", Status));
+            ImgVeriStatus = FALSE;
+            break;
+        } else {
+            DEBUG ((EFI_D_INFO, "VB:for %a "
+                          "Image_verification Success: %r\n",
+                          Info->Images[Imgindex].Name, Status));
+        }
+   }
+#else
+   /*Image index 0 is for boot Image*/
+   Status = Image_verification (Info, &OemCert, QcomAsn1X509Protocal, 0);
+   if (Status != EFI_SUCCESS) {
+       DEBUG ((EFI_D_ERROR, "VB: Error during "
+                     "Image_verification: %r\n", Status));
+       ImgVeriStatus = FALSE;
+          
+   } else {
+       DEBUG ((EFI_D_INFO, "VB:Image_verification"
+                     "Success: %r\n", Status));
+   }
+#endif
+  /* There are build variants where boot image is not signed.
+   * Below check allows the device to bootup even if the
+   * authentication fails on a Non-secure device.
+   * Note: Dummy Root of Trust will be set if image
+   * authentication fails or boot image is not signed.
+   */
+   if (!SecureDevice && 
+       !ImgVeriStatus &&
+       !TargetBuildVariantUser ()) {
+          if (KeymasterEnabled) {
+              Data.PublicKeyModLength = DUMMY_PUBLIC_KEY_MOD_LEN;
+              Data.PublicKeyMod = avb_calloc (DUMMY_PUBLIC_KEY_MOD_LEN);
+              Data.PublicKeyExpLength = DUMMY_PUBLIC_KEY_EXP_LEN;
+              Data.PublicKeyExp = avb_calloc (DUMMY_PUBLIC_KEY_EXP_LEN);
+              if (Data.PublicKeyMod != NULL &&
+                  Data.PublicKeyExp != NULL) {
+                  Status = KeyMasterSetRotForLE (&Data);
+                    if (Status != EFI_SUCCESS) {
+                        DEBUG ((EFI_D_ERROR, "KeyMasterSetRotForLE failed "
                                                             "%r\n", Status));
-                            return Status;
-                        }
-                        DEBUG ((EFI_D_INFO, "VB: Dummy ROT set\n"));
+                        return Status;
                     }
-                }
-                goto skip_verification;
-         }
-    }
-    DEBUG ((EFI_D_INFO, "VB: LoadImageAndAuthForLE complete!\n"));
+                    DEBUG ((EFI_D_INFO, "VB: Dummy ROT set\n"));
+              }
+          }
+          goto skip_verification;
+   }
+   if (!ImgVeriStatus) {
+       return Status;
+   }
+   DEBUG ((EFI_D_INFO, "VB: LoadImageAndAuthForLE complete!\n"));
 
     if (KeymasterEnabled) {
       /* Set Rot & Boot State*/
