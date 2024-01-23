@@ -26,8 +26,8 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/* Changes from Qualcomm Innovation Center are provided under the following
- * license:
+/* Changes from Qualcomm Innovation Center, Inc. are provided under the
+ * following license:
  *
  * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
@@ -1692,24 +1692,25 @@ STATIC EFI_STATUS LoadImageAndAuthForLE (BootInfo *Info)
 
 #ifdef VEN_DTB_SIGN_VERIFY 
    /*Calculate kernel,vendor_boot,dtbo image hash, SHA256 is used by default*/
-   static CHAR8 *VbleImages[] = {"boot_a", "vendor_boot_a", "dtbo_a"};
+   static CHAR8 *VbleImages[] = {"boot_a", "vendor_boot_a", "dtbo_a", NULL};
    for (UINT32 Imgindex = 0; Imgindex < Info->NumLoadedImages; Imgindex++) {
-        if (!avb_strv_find_str ((CONST CHAR8 *CONST *)VbleImages,
-                                 Info->Images[Imgindex].Name,
-                                 strlen (Info->Images[Imgindex].Name))) {
+        if (avb_strv_find_str ((CONST CHAR8 *CONST *)VbleImages,
+                                Info->Images[Imgindex].Name,
+                                strlen (Info->Images[Imgindex].Name))) {
             Status = Image_verification (Info, &OemCert, QcomAsn1X509Protocal,
                                          Imgindex);
-        }
-        if (Status != EFI_SUCCESS) {
-            DEBUG ((EFI_D_ERROR, "VB: Error during "
-                          "Image_verification: %r\n", Status));
-            ImgVeriStatus = FALSE;
-            break;
-        } else {
-            DEBUG ((EFI_D_INFO, "VB:for %a "
-                          "Image_verification Success: %r\n",
-                          Info->Images[Imgindex].Name, Status));
-        }
+            if (Status != EFI_SUCCESS) {
+                DEBUG ((EFI_D_ERROR, "VB:for %a "
+                              "Image_verification failed: %r\n",
+                              Info->Images[Imgindex].Name, Status));
+                ImgVeriStatus = FALSE;
+                break;
+            } else {
+                DEBUG ((EFI_D_INFO, "VB:for %a "
+                              "Image_verification Success: %r\n",
+                              Info->Images[Imgindex].Name, Status));
+            }
+       }
    }
 #else
    /*Image index 0 is for boot Image*/
