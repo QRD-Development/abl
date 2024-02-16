@@ -460,7 +460,7 @@ Notes:
       strncat (Line, Cptr, MAX_LINE_LEN - strlen (Line) - 1);
       if (LineNumber != 0) {
         sprintf (Line2, "(%u)", (unsigned) LineNumber);
-        strncat (Line, Line2, MAX_LINE_LEN - strlen (Line) - 1);
+        memcpy (Line, Line2, MAX_LINE_LEN - strlen (Line) - 1);
       }
     }
   } else {
@@ -475,7 +475,7 @@ Notes:
       Line[MAX_LINE_LEN - 1] = 0;
       if (LineNumber != 0) {
         sprintf (Line2, "(%u)", (unsigned) LineNumber);
-        strncat (Line, Line2, MAX_LINE_LEN - strlen (Line) - 1);
+        memcpy (Line, Line2, MAX_LINE_LEN - strlen (Line) - 1);
       }
     } else {
       if (mUtilityName[0] != '\0') {
@@ -502,7 +502,7 @@ Notes:
   strncat (Line, Type, MAX_LINE_LEN - strlen (Line) - 1);
   if (MessageCode != 0) {
     sprintf (Line2, " %04u", (unsigned) MessageCode);
-    strncat (Line, Line2, MAX_LINE_LEN - strlen (Line) - 1);
+    memcpy (Line, Line2, MAX_LINE_LEN - strlen (Line) - 1);
   }
   fprintf (stdout, "%s", Line);
   //

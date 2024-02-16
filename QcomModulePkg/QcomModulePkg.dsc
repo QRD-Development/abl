@@ -96,6 +96,9 @@
   !if $(VERIFIED_BOOT)
       GCC:*_*_*_CC_FLAGS = -DVERIFIED_BOOT
   !endif
+  !if $(VEN_DTB_SIGN_VERIFY)
+      GCC:*_*_*_CC_FLAGS = -DVEN_DTB_SIGN_VERIFY
+  !endif
   !if $(VERIFIED_BOOT_2)
       GCC:*_*_*_CC_FLAGS = -DVERIFIED_BOOT_2
   !endif

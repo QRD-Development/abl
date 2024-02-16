@@ -31,9 +31,10 @@
  */
 
 /*
- * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the
+ * following license:
  *
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted (subject to the limitations in the
@@ -1350,6 +1351,7 @@ CheckImageHeader (VOID *ImageHdrBuffer,
                   VOID *VendorImageHdrBuffer,
                   UINT32 VendorImageHdrSize,
                   UINT32 *ImageSizeActual,
+                  UINT32 *vendor_bootImgSizeActual,
                   UINT32 *PageSize,
                   BOOLEAN BootIntoRecovery,
                   VOID *RecoveryHdrBuffer)
@@ -1526,6 +1528,27 @@ CheckImageHeader (VOID *ImageHdrBuffer,
         DEBUG ((EFI_D_ERROR, "Integer Overflow: dt Size = %u\n", DtSize));
         return EFI_BAD_BUFFER_SIZE;
      }
+  }
+
+  if (HeaderVersion >= BOOT_HEADER_VERSION_THREE) {
+      if (vendor_bootImgSizeActual != NULL) {
+          *vendor_bootImgSizeActual = ADD_OF (*PageSize, DtSizeActual);
+          if (!*vendor_bootImgSizeActual) {
+              DEBUG ((EFI_D_ERROR, "Integer Overflow: Actual DT size = %u\n",
+                      DtSizeActual));
+              return EFI_BAD_BUFFER_SIZE;
+          }
+
+          tempImgSize = *vendor_bootImgSizeActual;
+          *vendor_bootImgSizeActual = ADD_OF (*vendor_bootImgSizeActual,
+                                              VendorRamdiskSizeActual);
+          if (!*vendor_bootImgSizeActual) {
+              DEBUG ((EFI_D_ERROR,
+                      "Integer Overflow: ImgSizeActual=%u, RamdiskActual=%u\n",
+                      tempImgSize, VendorRamdiskSizeActual));
+              return EFI_BAD_BUFFER_SIZE;
+          }
+      }
   }
 
   *ImageSizeActual = ADD_OF (*PageSize, KernelSizeActual);
