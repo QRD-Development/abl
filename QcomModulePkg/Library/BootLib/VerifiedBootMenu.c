@@ -573,9 +573,9 @@ VerifiedBootMenuShowScreen (OPTION_MENU_INFO *OptionMenuInfo,
   OptionMenuInfo->Info.MenuType = Type;
   /* Initialize the time out time */
   if (Type == DISPLAY_MENU_RED || Type == DISPLAY_MENU_EIO)
-    OptionMenuInfo->Info.TimeoutTime = 30;
+    OptionMenuInfo->Info.TimeoutTime = 3;
   else
-    OptionMenuInfo->Info.TimeoutTime = 10;
+    OptionMenuInfo->Info.TimeoutTime = 1;
 
   return Status;
 }
