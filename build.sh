@@ -1,0 +1,24 @@
+#!/bin/bash
+
+export ROOT_DIR=$(readlink -f $(dirname $0)/..)
+echo $ROOT_DIR
+export ABL_SRC=$(pwd)
+echo $ABL_SRC
+export ABL_OUT_DIR=output
+mkdir -p ${ABL_OUT_DIR}
+
+# sdclang
+export CLANG_PREBUILT_BIN=${ROOT_DIR}/sdclang/compiler/bin
+echo $CLANG_PREBUILT_BIN
+
+echo "Starting in 3 seconds..."
+sleep 3
+
+PREBUILT_HOST_TOOLS="CC=clang CXX=clang++ AR=llvm-ar"
+MKABL_ARGS=("-C" "${ABL_SRC}")
+MKABL_ARGS+=("BOOTLOADER_OUT=${ABL_OUT_DIR}/obj/ABL_OUT" "all")
+MKABL_ARGS+=("CLANG_BIN=${CLANG_PREBUILT_BIN}/")
+
+rm -rf ${ABL_OUT_DIR}
+
+make USER_BUILD_VARIANT=0 VIRTUAL_AB_OTA=1 BOARD_BOOTLOADER_PRODUCT_NAME=lahaina VERIFIED_BOOT_2=1 BUILD_SYSTEM_ROOT_IMAGE=0 USERDATAIMAGE_FILE_SYSTEM_TYPE=f2fs BUILD_USES_RECOVERY_AS_BOOT=1 DYNAMIC_PARTITION_SUPPORT=1 ARCHITECTURE=AARCH64 "${MKABL_ARGS[@]}"
