@@ -1,7 +1,10 @@
 Build/
+QcomModulePkg/Tools/elf_tools.pyc
 .DS_Store
 *_extdep/
 *.pyc
 __pycache__/
+output/
 tags/
 .vscode/
+build_modulepkg.log
