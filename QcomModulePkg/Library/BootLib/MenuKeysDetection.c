@@ -158,6 +158,9 @@ UpdateDeviceStatus (OPTION_MENU_INFO *MsgInfo, INTN Reason)
     }
     RebootDevice (NORMAL_MODE);
     break;
+  case REBOOTEDL:
+    RebootDevice (EMERGENCY_DLOAD);
+    break;
   }
 }
 

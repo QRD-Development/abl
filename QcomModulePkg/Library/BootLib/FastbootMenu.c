@@ -85,6 +85,13 @@ STATIC MENU_MSG_INFO mFastbootOptionTitle[] = {
      OPTION_ITEM,
      0,
      QMMI},
+    {{"Emergency Download"},
+     BIG_FACTOR,
+     BGR_ORANGE,
+     BGR_BLACK,
+     OPTION_ITEM,
+     0,
+     REBOOTEDL},
 };
 
 STATIC MENU_MSG_INFO mFastbootCommonMsgInfo[] = {
