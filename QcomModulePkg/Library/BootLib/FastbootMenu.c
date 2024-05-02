@@ -123,6 +123,7 @@ STATIC MENU_MSG_INFO mFastbootOptionTitle[] = {
 #define FASTBOOT_MSG_INDEX_SECURE_BOOT             9
 #define FASTBOOT_MSG_INDEX_DEVICE_STATE_UNLOCKED  10
 #define FASTBOOT_MSG_INDEX_DEVICE_STATE_LOCKED    11
+#define FASTBOOT_MSG_INDEX_DEVELOPER              12
 
 STATIC MENU_MSG_INFO mFastbootCommonMsgInfo[] = {
     {{"\nPress volume key to select, "
@@ -210,6 +211,21 @@ STATIC MENU_MSG_INFO mFastbootCommonMsgInfo[] = {
      COMMON,
      0,
      NOACTION},
+    {{"\n"},
+     COMMON_FACTOR,
+     BGR_GREEN_DARK,
+     BGR_BLACK,
+     COMMON,
+     0,
+     NOACTION},
+};
+
+STATIC CONST CHAR8 ABL_ENG_LOGO[][MAX_RSP_SIZE] = {
+"  __ \n"
+"|/  | \n"
+"|   | ___ \n"
+"|   )|___)(  ) \n"
+"|__/ |__   |/ \n"
 };
 
 /**
@@ -279,6 +295,7 @@ FastbootMenuShowScreen (OPTION_MENU_INFO *OptionMenuInfo)
   UINT32 OptionItemCount = 0;
   UINT32 Height = 0;
   UINT32 i = 0;
+  UINT32 j = 0;
   CHAR8 StrTemp[MAX_RSP_SIZE] = "";
   CHAR8 StrTemp1[MAX_RSP_SIZE] = "";
   CHAR8 VersionTemp[MAX_VERSION_LEN] = "";
@@ -380,6 +397,16 @@ FastbootMenuShowScreen (OPTION_MENU_INFO *OptionMenuInfo)
       /* Get device status, only show when locked */
       if (IsUnlocked ())
         continue;
+      break;
+    case FASTBOOT_MSG_INDEX_DEVELOPER:
+      if (!IsDeveloperModeEnabled ())
+        continue;
+
+      for (j = 0; j < ARRAY_SIZE (ABL_ENG_LOGO); j++) {
+        AsciiStrnCatS (
+            mFastbootCommonMsgInfo[i].Msg, sizeof (mFastbootCommonMsgInfo[i].Msg),
+            ABL_ENG_LOGO[j], sizeof (ABL_ENG_LOGO[j]));
+      }
       break;
     }
 
