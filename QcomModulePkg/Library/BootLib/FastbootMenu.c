@@ -113,17 +113,18 @@ STATIC MENU_MSG_INFO mFastbootOptionTitle[] = {
 
 #define FASTBOOT_MSG_INDEX_HEADER                  0
 #define FASTBOOT_MSG_INDEX_FASTBOOT                1
-#define FASTBOOT_MSG_INDEX_CURRENT_SLOT            2
-#define FASTBOOT_MSG_INDEX_PRODUCT_NAME            3
-#define FASTBOOT_MSG_INDEX_PRODUCT_MODEL           4
-#define FASTBOOT_MSG_INDEX_VARIANT                 5
-#define FASTBOOT_MSG_INDEX_BOOTLOADER_VERSION      6
-#define FASTBOOT_MSG_INDEX_BASEBAND_VERSION        7
-#define FASTBOOT_MSG_INDEX_SERIAL_NUMBER           8
-#define FASTBOOT_MSG_INDEX_SECURE_BOOT             9
-#define FASTBOOT_MSG_INDEX_DEVICE_STATE_UNLOCKED  10
-#define FASTBOOT_MSG_INDEX_DEVICE_STATE_LOCKED    11
-#define FASTBOOT_MSG_INDEX_DEVELOPER              12
+#define FASTBOOT_MSG_INDEX_BUILD_TIME              2
+#define FASTBOOT_MSG_INDEX_CURRENT_SLOT            3
+#define FASTBOOT_MSG_INDEX_PRODUCT_NAME            4
+#define FASTBOOT_MSG_INDEX_PRODUCT_MODEL           5
+#define FASTBOOT_MSG_INDEX_VARIANT                 6
+#define FASTBOOT_MSG_INDEX_BOOTLOADER_VERSION      7
+#define FASTBOOT_MSG_INDEX_BASEBAND_VERSION        8
+#define FASTBOOT_MSG_INDEX_SERIAL_NUMBER           9
+#define FASTBOOT_MSG_INDEX_SECURE_BOOT            10
+#define FASTBOOT_MSG_INDEX_DEVICE_STATE_UNLOCKED  11
+#define FASTBOOT_MSG_INDEX_DEVICE_STATE_LOCKED    12
+#define FASTBOOT_MSG_INDEX_DEVELOPER              13
 
 STATIC MENU_MSG_INFO mFastbootCommonMsgInfo[] = {
     {{"\nPress volume key to select, "
@@ -137,6 +138,13 @@ STATIC MENU_MSG_INFO mFastbootCommonMsgInfo[] = {
     {{"Fastboot mode\n\n"},
      COMMON_FACTOR,
      BGR_YELLOW,
+     BGR_BLACK,
+     COMMON,
+     0,
+     NOACTION},
+    {{"BUILD_TIME - "},
+     COMMON_FACTOR,
+     BGR_GREEN,
      BGR_BLACK,
      COMMON,
      0,
@@ -320,6 +328,12 @@ FastbootMenuShowScreen (OPTION_MENU_INFO *OptionMenuInfo)
     switch (i) {
     case FASTBOOT_MSG_INDEX_HEADER:
     case FASTBOOT_MSG_INDEX_FASTBOOT:
+      break;
+    case FASTBOOT_MSG_INDEX_BUILD_TIME:
+      /* Get build time */
+      AsciiStrnCatS (mFastbootCommonMsgInfo[i].Msg,
+        sizeof (mFastbootCommonMsgInfo[i].Msg), BUILD_TIME,
+        AsciiStrLen (BUILD_TIME));
       break;
     case FASTBOOT_MSG_INDEX_CURRENT_SLOT:
       /* Get current slot */
