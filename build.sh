@@ -4,8 +4,8 @@ export ROOT_DIR=$(readlink -f $(dirname $0)/..)
 echo $ROOT_DIR
 export ABL_SRC=$(pwd)
 echo $ABL_SRC
+
 export ABL_OUT_DIR=output
-mkdir -p ${ABL_OUT_DIR}
 
 # sdclang
 export CLANG_PREBUILT_BIN=${ROOT_DIR}/sdclang/compiler/bin
